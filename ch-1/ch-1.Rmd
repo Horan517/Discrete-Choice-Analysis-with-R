@@ -48,6 +48,7 @@ mc_mode_choice <- read_csv(system.file("extdata",
                                        "mc_commute.csv", 
                                        package = "discrtr"),
                            show_col_types = FALSE)
+summary(mc_mode_choice)
 ```
 
 ```{r ch01-head-mac-mode-choice}
@@ -168,16 +169,17 @@ summary(time.Active.clean)
 ggplot(data = time.Active.clean) + 
   geom_area(aes(x = timecycle),
             stat = "bin", 
-            binwidth = 5, 
+            binwidth = 1, 
             fill = "blue", 
-            color = "blue", 
+            color = "green", 
             alpha = 0.6) +
   geom_area(aes(x = timewalk), 
             stat = "bin", 
             binwidth = 5, 
             fill = "yellow", 
-            color = "yellow", 
-            alpha = 0.6)
+            color = "orange", 
+            alpha = 0.6) +
+  xlab("Time (in minutes)")
 ```
 
 ```{r ch01-plotting-step-1}
@@ -275,8 +277,56 @@ ggplot(aes(x = choice,
   geom_boxplot()
 ```
 
+## 1.	Deﬁne “model”.
+
+
+
+## 2.	Why are models on a 1-to-1 scale undesirable?
+
+Becasue 
+
+3.	Invoke data set Mode from package mlogit. To do this you need to ﬁrst load the package. This is a data set with choices about mode of transportation. This is done as follows:
+
 ```{r ch01-exercise-load-data, eval=FALSE}
 library(mlogit)
 data("Mode")
 ```
+
+4.	Describe this data set. How many variables are there and of which type (i.e., categorical/quantitative)?
+
+There are nine variables and only "choice" is a nominal categorical variable as "factor", while the other eight variables are all quantitative variables in ratio scale.
+
+5.	How many different modes of transportation are in this data set? What is the most popular mode? What is the least popular mode?
+
+```{r ch01-exercise-q5, results='hide'}
+Mode %>%
+  summary()
+```
+
+There are four modes of transportation in this data set, which are car, carpool, bus, and rail. Car is the most popular mode while carpool is the least popular.
+
+6.	In general, what is the most expensive mode? The least expensive?
+
+用ggplot的平滑图像
+
+```{r ch01-exercise-q6, results='hide'}
+Mode %>%
+  summary()
+```
+
+7.	Create a plot showing the univariate distributions of time by car and time by bus. Discuss.
+
+```{r ch01-exercise-q6, results='hide'}
+Mode %>%
+  summary()
+```
+
+8.	How do choices relate to cost by the different modes?
+
+```{r ch01-exercise-q6, results='hide'}
+Mode %>%
+  summary()
+```
+
+
 

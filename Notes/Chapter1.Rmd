@@ -1,0 +1,137 @@
+---
+title: "Chapter1"
+author: "Haoran Xu"
+date: "2025-01-06"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Questions:
+
+1. stargazer( results = 'asis')那个函数无法即使knit成robobook之后也无法显示成完整的表格
+2. 1、2、3、4赋值不一致
+3. 想让我们怎么交作业，写一个另外r notebook文件吗？
+4. 
+
+```{r}
+if(!require("remotes"))
+  install.packages("remotes",
+                   repos = "https://cran.rstudio.org")
+if(!require("discrtr"))
+  remotes::install_github("paezha/discrtr")
+```
+
+```{r}
+# renv::install("tidyverse")
+# renv::install("dplyr")
+# renv::install("mlogit")
+# renv::install("stargazer")
+# renv::install("dfidx")
+
+library(discrtr)
+library(dplyr)
+library(ggplot2)
+library(mlogit)
+library(readr)
+library(stargazer)
+
+# renv::install("tinytex")
+library(tinytex)
+```
+
+```{r}
+# Read a csv file data and name the object
+mc_mode_choice <- read_csv(system.file("extdata",
+                                       "mc_commute.csv",
+                                       package = "discrtr"),
+                           show_col_types = FALSE)
+
+summary(mc_mode_choice)
+```
+
+
+```{r, results = 'asis'}
+# the weird thing is: only by adding "results = `asis`" will the PDF doc be rendered out the correct table
+
+# `stargazer()` takes as an input a data frame
+stargazer(as.data.frame(mc_mode_choice[,1:5]),  
+          type = "latex",   # change the type to text, html, or latex depending on the desired output
+          header = FALSE,
+          title = "Example of a table with summary statistics",   # do not print package version info in the output
+          omit.summary.stat = c("N",
+                                "median"),   # summary statistics to omit from output
+          font.size = "small")
+```
+
+```{r}
+# Function `factor()` is used to convert a variable (which could be character or numeric)
+# into a factor, that is, a label or category; when we want a factor to be ordered (treated
+# as an ordinal variable) we specify argument ordered = TRUE. Non-ordinal variables by default
+# are displayed alphabetically, but changing their order when specifying the labels changes
+# the order they are displayed _without necessarily making them ordinal_
+mc_mode_choice$choice <- factor(mc_mode_choice$choice,
+                                labels = c("Cycle",
+                                           "Walk",
+                                           "HSR",
+                                           "Car"))
+
+class(mc_mode_choice$choice)
+class(mc_mode_choice$timecycle)
+
+mc_mode_choice[2, 2]
+mc_mode_choice$choice[2]
+mc_mode_choice[["choice"]][2]
+mc_mode_choice[2:5, 7:8]
+
+time.Cycle.clean <- mc_mode_choice$timecycle[mc_mode_choice$timecycle != 100000]
+class(time.Cycle.clean)
+
+# a better and more effient way using {dplyr}
+
+time.Active.clean <- mc_mode_choice %>%  # Pipe data frame `mc_mode_choice`
+  select(c("timecycle",   # Select columns from the data frame that was piped
+           "timewalk")) %>%
+  filter(timecycle != 100000 & timewalk != 100000)   # Filter observations that are _not_ 100000
+
+summary(time.Active.clean)
+
+ggplot(data = time.Active.clean) +
+  geom_area(aes(x = timecycle),
+            stat = "bin",   #  binned for smoothing
+            binwidth = 1,  # smaller means less smoothing
+            fill = "blue",
+            color = "green",
+            # alpha controls opacity (0 means transparent, 1 means solid)
+            alpha = 0.6) +
+  geom_area(aes(x = timewalk),
+            stat = "bin",
+            binwidth = 1,
+            fill = "yellow",
+            color = "orange",
+            alpha = 0.6) +
+  xlab("Time (in minutes)")
+```
+
+```{r}
+# pipe operator: %>%
+
+mc_mode_choice %>%
+  select(c("choice", "side_den")) %>%
+  summary()
+
+mc_mode_choice %>%
+  ggplot(aes(x = choice,
+             y = side_den)) +
+  geom_boxplot()
+
+```
+
+
+
+
+
