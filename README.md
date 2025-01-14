@@ -17,7 +17,7 @@ well as all packages used in the book.
 
 ## How to use this repository
 
-1.  Install R (make sure to pick the correct operating system) - this is
+1.  Install R (make sure to pick the correctre operating system) - this is
     the programming language, it comes as a ‘core package’ here:
 
     <https://cran.rstudio.com/>
