@@ -190,6 +190,10 @@ print("Is that a bar chart in your pocket, or are you just happy to see me?")
 rm(list = ls())
 ```
 
+
+----------------------------------------------------------------------------------
+
+
 ```{r ch02-load-packages, message=FALSE}
 library(discrtr) # A companion package for the book Introduction to Discrete Choice Analysis with `R`
 library(dplyr) # A Grammar of Data Manipulation 
@@ -222,7 +226,7 @@ mc_commute_wide <- mc_commute_wide %>%
                                   "Yes"),
                          # Give the factor categories more descriptive labels
                          labels=c("No ind. vehicle access",
-                                  "Ind. vehicle access"))) 
+                                  "Ind. vehicle access")))
 ```
 
 ```{r ch02-summary-mc_commute_wide}
@@ -244,6 +248,8 @@ mc_commute_wide <- mc_commute_wide %>%
                               Shelters_SA == 1 ~ 2,
                               TRUE ~ 0))
 ```
+
+Q: 问问卷的时候问的是四个虚拟变量分别的问题？而不是一个问题？
 
 ```{r ch02-recode-shelters-as-factor}
 mc_commute_wide <- mc_commute_wide %>%
@@ -299,7 +305,7 @@ mc_commute_wide %>%
   geom_point(color = "black",
              fill = "white",
              size = 6) +
-  # Add geometric features of type segment (line segments)
+  # Add geometric features of type segment (line segments) --> width of lines
   geom_segment(size = 1) +
   # Label the axes
   labs(x = "Public transport facilities of good quality",
