@@ -10,6 +10,11 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+hi, how are you doing, trying to push sth.
+
+...
+
+
 ```{r ch02-load-packages-and-data, include=FALSE, cache=FALSE}
 library(biscale) # Tools and Palettes for Bivariate Thematic Mapping
 library(cowplot) # Streamlined Plot Theme and Plot Annotations for 'ggplot2'
