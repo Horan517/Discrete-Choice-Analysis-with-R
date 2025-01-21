@@ -1,10 +1,10 @@
 ---
-title: "Chapter 1"
+title: "GEOG 738 Discrete Choice Analysis - Exercise 1"
 author: "Haoran Xu"
-date: "2025-01-20"
+date: "2025-01-21"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -23,20 +23,20 @@ A model is a simplified representation of a real-world system or problem that in
 - 1-to-1 scale models might not be convenient or feasible for model experimentation or adjustments.
 
 
-3.	Invoke data set Mode from package mlogit. To do this you need to ﬁrst load the package. This is a data set with choices about mode of transportation. This is done as follows:
+## 3.	Invoke data set Mode from package mlogit. To do this you need to ﬁrst load the package. This is a data set with choices about mode of transportation. This is done as follows:
 
-```{r ch01-exercise-load-data, eval=FALSE}
+```{r ch01-exercise-load-data, message = "hide"}
 library(mlogit)
 data("Mode")
 ```
 
 
-4.	Describe this data set. How many variables are there and of which type (i.e., categorical/quantitative)?
+## 4.	Describe this data set. How many variables are there and of which type (i.e., categorical/quantitative)?
 
 There are nine variables and only `choice` is a nominal categorical variable coded as factor, while the other eight variables are all quantitative variables in ratio scale coded as numeric.
 
 
-5.	How many different modes of transportation are in this data set? What is the most popular mode? What is the least popular mode?
+## 5.	How many different modes of transportation are in this data set? What is the most popular mode? What is the least popular mode?
 
 ```{r ch01-exercise-q5, results='hide'}
 summary(Mode)
@@ -45,7 +45,7 @@ summary(Mode)
 There are four modes of transportation in this data set, which are car, carpool, bus, and rail. Car is the most popular mode while carpool is the least popular.
 
 
-6.	In general, what is the most expensive mode? The least expensive?
+## 6.	In general, what is the most expensive mode? The least expensive?
 
 ```{r ch01-exercise-q6, results='markup'}
 library(knitr)
@@ -89,7 +89,7 @@ ggplot(data = Mode) +
 
 In general, traveling by car is the most expansive mode with the highest mean, average, and quantiles. Carpooling appears to be the least expansive mode with lowest median and mean, while cost of bus or rail are also few as carpooling. But mode of carpooling has higer standard deviation with wider spans.
 
-7.	Create a plot showing the univariate distributions of time by car and time by bus. Discuss.
+## 7.	Create a plot showing the univariate distributions of time by car and time by bus. Discuss.
 
 ```{r ch01-exercise-q7, results='markup'}
 ggplot(data = Mode) + 
@@ -114,7 +114,7 @@ ggplot(data = Mode) +
 
 The time of cars or buses range span from 1 min to 76 min. Time by car generally appear to have (with `binwidth` set as 8) three peaks which appear around 8 min, 32 min, and 56 min while time by bus has two peaks in 23 min and 48 min. The mean and median of time by bus is slightly higher than time by car, which is indicated in the graph with having shorter tais in the low end and longer tail in the high end.
 
-8.	How do choices relate to cost by the different modes?
+## 8.	How do choices relate to cost by the different modes?
 
 ```{r ch01-exercise-q8, results='markup'}
 ggplot() +

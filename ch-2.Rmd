@@ -64,7 +64,7 @@ mc_commute_wide %>%
   # Slice (filter) 8 rows at the head of the table
   slice_head(n = 8) %>%
   # Use `kable()` to tabluate
-  kable("latex",
+  kable("html",
         booktabs = TRUE,
         digits = 3,
         caption = "\\label{tab:ch02-commute-table}First eight rows of selected variables in data frame") %>%
@@ -120,6 +120,8 @@ ggdraw() +
   draw_plot(legend, 0.65, 0.1, 0.3, 0.3)
 ```
 
+- 5 (and more) variables (lat, lon, street den, sidewalk den, urban/suburban, polygon, lake?, )
+
 ```{r ch02-prepare-data-example-alluvial, include=FALSE}
 # Convert data to alluvia: pipe `mc_commute_wide` to `mutate()`
 mc_commute_alluvia <- mc_commute_wide %>%
@@ -139,7 +141,7 @@ mc_commute_alluvia <- mc_commute_wide %>%
 ```{r ch02-commute-table-frequency, echo=FALSE}
 # Pipe table to `kable()` for tabulation
 mc_commute_alluvia %>%
-  kable("latex",
+  kable("html",
         booktabs = TRUE,
         caption = "\\label{tab:ch02-commute-table-frequency}Table of frequencies by three categorical variables") %>%
   kable_styling(latex_options = c("striped", "Hold"))
@@ -309,7 +311,8 @@ mc_commute_wide %>%
   geom_segment(size = 1) +
   # Label the axes
   labs(x = "Public transport facilities of good quality",
-       y = "Number of respondents")
+       y = "Number of respondents") +
+  theme_minimal()
 ```
 
 ```{r ch02-treemap-of-choice}
