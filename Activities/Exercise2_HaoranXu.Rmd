@@ -11,6 +11,21 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r load-packages-and-data, include=FALSE, cache=FALSE}
+library(biscale) # Tools and Palettes for Bivariate Thematic Mapping
+library(cowplot) # Streamlined Plot Theme and Plot Annotations for 'ggplot2'
+library(discrtr) # A companion package for the book Introduction to Discrete Choice Analysis with `R`
+library(dplyr) # A Grammar of Data Manipulation
+library(ggalluvial) # Alluvial Plots in 'ggplot2'
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
+library(ggspatial) # Spatial Data Framework for ggplot2
+library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax
+library(sf) # Simple Features for R
+library(stargazer) # Well-Formatted Regression and Summary Statistics Tables
+library(treemapify) # Draw Treemaps in 'ggplot2'
+library(ggmosaic) # Mosaic Plots in the 'ggplot2' Framework 
+```
+
 
 ## 1.	Why is EDA an important part of a modeling exercise?
 
@@ -100,24 +115,165 @@ data("Car")
 
 ## 4.	How many variables are there in this data set and of which type (i.e., categori-cal/quantitative)?
 
-```{r}
+```{r, results = 'hide'}
 summary(Car)
 ```
 
 There are 70 variables of different variable types:
 - Categorical
-  - Ordinal (13): choice, type1-6, fuel1-6
+  - Nominal (16): choice, college, hsg2, coml5, typez, fuelz, and among them college, hsg2, and coml5 are dummy variables coded in {0, 1}.
+  - Ordinal (6): sizez
 - Quantitative
-  - Ratio (57): college, hsg2, coml5, price1-6, range1-6, acc1-6, speed1-6, pollution1-6, size1-6, space1-6, cost1-6, station1-6 and among them college, hsg2, and coml5 are dummy variables coded in {0, 1}
+  - Ratio (48): pricez, rangez, accz, speedz, pollutionz, spacez, costz, stationz 
 
 
 ## 5.	Choose four relevant categorical variables from this data set and describe them using univariate, bivariate, and multivariate techniques. Discuss your results.
 
+### Univariate analysis
 
+```{r lollipop-plot-choices}
+Car %>%
+  group_by(choice) %>%
+  summarize(n = n()) %>%
+  ggplot(aes(x = choice,
+             xend = choice,
+             y = n,
+             yend = 0)) + 
+  # Add geometric featues of type point
+  geom_point(color = "black",
+             fill = "white",
+             size = 6) +
+  # Add geometric features of type segment (line segments) --> width of lines
+  geom_segment(size = 1) +
+  # Label the axes
+  labs(x = "Car Choice",
+       y = "Number of respondents") +
+  theme_minimal()
+```
+
+Regarding choices, most of people made choice5, choice3, choice1, while for the other three choices there are less quantities.
+
+```{r treemap-of-typez}
+library(treemapify)
+library(tidyr)
+
+# Combine type1 to type6 into a long format
+Car_long <- Car %>%
+  pivot_longer(cols = starts_with("type"), 
+               names_to = "type", 
+               values_to = "category")
+
+# Create treemaps with facets for type1 to type6
+Car_long %>%
+  group_by(type, category) %>%
+  summarize(n = n(), .groups = "drop") %>%
+  ggplot(aes(fill = category, area = n)) +
+  geom_treemap() +
+  facet_wrap(~ type, scales = "free") +
+  labs(title = "Treemaps for car typez 1-6", 
+       fill = "Category") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+```
+
+The six propositions of car body types, along with the summary results of these variables, show that the type1, type3, and type5 are exactly the same, in which regular car account for most choices, followed by truck, van, sport utility vehicle, sportcar, and station wagon. While for type2, type4, and type6, truck, van, station wagon account respectively for the most types chosen.
+
+### Bivariate analysis
+
+```{r mosaic-college-by-choice, warning=FALSE}
+Car %>%
+  ggplot() +
+  geom_mosaic(aes(x = product(choice, 
+                              college), 
+                  fill = choice)) + 
+  # Add labels
+  labs(x = "College education",  
+       y = "Choice", 
+       fill = "Choice")
+```
+
+The bivariate plot of size of college education and choice shows that most people have college education. For for those who have it, people tend to choose choice1 and choice3 more often than people who do not.
+
+```{r mosaic-hsg2-by-choice, warning=FALSE}
+Car %>%
+  ggplot() +
+  geom_mosaic(aes(x = product(choice, 
+                              hsg2), 
+                  fill = choice)) + 
+  labs(x = "Size of household greater than 2",  
+       y = "Choice",
+       fill = "Choice")
+```
+
+The bivariate plot of size of household greater than 2 and choice shows that most people do not have a household greater than 2. For households greater than 2, people tend to choose choice2, choice4 and choice 6 more often than people who do not.
+
+```{r mosaic-coml5-by-choice, warning=FALSE}
+Car %>%
+  ggplot() +
+  geom_mosaic(aes(x = product(choice, 
+                              coml5), 
+                  fill = choice)) + 
+  labs(x = "Commute lower than 5 miles a day",  
+       y = "Choice",
+       fill = "Choice")
+```
+
+The bivariate plot of people commuting lower than 5 miles a day and choice shows that most people commute lower than 5 miles a day. For for those who commute higher than 5 miles a day, people tend to choose choice2 and choice3 more often than people who commute less distance.
+
+### Multi-variate analysis
+
+```{r alluvial-prep}
+# data preparation
+car_alluvia <- Car %>%
+  mutate(collegeEducation = case_when(college == "1" ~ "Yes",
+                                        TRUE ~ "No"),
+         householdGreaterThan2 = case_when(hsg2 == "1" ~ "Yes",
+                                        TRUE ~ "No"),
+         commuteLowerThan5 = case_when(coml5 == "1" ~ "Yes",
+                                        TRUE ~ "No")
+         ) %>%
+  select(choice, collegeEducation, householdGreaterThan2, commuteLowerThan5) %>%
+  group_by(choice, collegeEducation, householdGreaterThan2, commuteLowerThan5) %>%
+  summarize(frequency = n(),
+            .groups = "drop")
+
+```
+
+```{r alluvial-plot}
+car_alluvia %>%
+  ggplot(aes(y = frequency, 
+             axis1 = choice,
+             axis2 = collegeEducation,
+             axis3 = householdGreaterThan2,
+             axis4 = commuteLowerThan5)) +
+  geom_alluvium(aes(fill = choice),
+                width = 1/12,
+                color = "black") +
+  geom_stratum(width = 1/3, 
+               fill = "black", 
+               color = "grey") +
+  geom_text(stat = "stratum", 
+            aes(label = after_stat(stratum)), 
+            color = "white",
+            size = 3) +
+  scale_x_discrete(limits = c("Choice", 
+                              "Have a College Education",
+                              "> 2 Household",
+                              "Commute Less Than 5 miles"), 
+                   expand = c(.05, .05)) +
+  scale_fill_brewer(type = "qual", 
+                    palette = "Dark2") +
+  theme_minimal()
+```
+
+According to the multi-variate alluvial graph drawn above, a majority of people who chose choice3 and choice5 have a college education, does not have a household more than 2 people, and commute less than 5 miles a day. 
 
 
 ## 6.	What ideas about individuals’ choices regarding car do you develop from this EDA exercise?
 
-
-
-
+People who chose choice1 or choice3 (regular car) have a higher tendency of having a college education and live in a household of no more than 2 people. While the variable of commuting less than 5 miles does not have a significant influence over people's choice over cars.
