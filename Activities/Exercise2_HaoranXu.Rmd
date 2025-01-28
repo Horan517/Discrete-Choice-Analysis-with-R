@@ -1,5 +1,5 @@
 ---
-title: "GEOG 738 Discrete Choice Analysis - Exercise 1"
+title: "GEOG 738 Discrete Choice Analysis - Exercise 2"
 author: "Haoran Xu"
 date: "2025-01-24"
 output:
