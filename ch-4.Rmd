@@ -152,7 +152,7 @@ df <- data.frame(x =seq(from = -5 + mu,
                         by = 0.01)) %>%
   mutate(f = plogis(x,
                     location = mu,
-                    scale = 1))
+                    scale = sigma))
 
 # Plot the cumulative distribution function
 logit_plot <- ggplot(data = df, 
