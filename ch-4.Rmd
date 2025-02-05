@@ -6,6 +6,9 @@ output:
     highlight: kate
 ---
 
+# Notes
+\mu is an indicator that would control systematic preference that could favor either alternative
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```

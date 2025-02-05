@@ -1,0 +1,59 @@
+---
+title: "Exercise5"
+author: "Haoran Xu"
+date: "2025-02-05"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r ch04-load-packages, message=FALSE, cache=FALSE}
+library(dplyr) # A Grammar of Data Manipulation
+library(evd) # Functions for Extreme Value Distributions 
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
+```
+
+## 1. What do we mean when we say that the logit probability has a closed form?
+
+Closed form is a term to describe the solutions to the integral that can be precisely derived using integration. The analytical solution to the logit model is the exact value of the integral, which can be written as:
+\[
+F(x;\mu, \sigma) = \frac{1}{1 + e^{- (x - \mu) / \sigma}}
+\]
+
+The Binomial Logit model can be written as:
+\[
+P_i = P(\epsilon_n < V_i - V_j) = \frac{1}{1 + e^{- (V_i - V_j)}} = \frac{e^{V_i}}{e^{V_i} + e^{V_j}}
+\]
+\( P_i \) above is the logit probability of choosing alternative \( i \),
+
+The multinomial Logit models can be written as:
+\[
+P_i = \frac{e^{V_i}}{\sum_{j}^{J}e^{V_j}}
+\]
+
+Both of them are closed forms.
+
+## 2. Why is it that we can set the dispersion parameter in the logit probabilities to one?
+
+Because the dispersion parameter in probability distribution will not alter the ordinality of choosing different alternatives. Since it can only affect the cardinality, we can arbitrarily set it as 1 for convenience.
+
+## 3. Suppose that a choice set consists of two alternatives, travel by car (c) and travel
+by blue bus (bb). The utilities of these two modes are the same, that is
+\[
+V_{c} = V_{bb}
+\]
+What are the probabilities of choosing these two modes?
+
+If the *reference* function is applied, then probabilities of choosing these two modes will be the both \( 0.5 \), which is the same, as \( \mu \) has been absorbed into one of the utility functions.
+
+If the *reference* function is not applied, the value of \( \mu \) becomes important in deciding the difference of \( V_{c} \) and \( V_{bb} \). If \( \mu \) is 0, meaning that the probability distribution of the difference of random utility (i.e., \( \epsilon_{n} \)) is centered at 0, the probabilities of the two modes would be equally \( 0.5 \). If \( \mu \) is not 0, both of their probabilities will not be \( 0.5 \).
+
+## 4. Suppose that the transit operator of the blue buses in Question 3 decides to introduce
+a new service, namely a red bus. This red bus is identical to the blue bus
+in every respect except the color. Under these new conditions, what are the logit
+probabilities of choosing these modes?
+
+
+## 5. Discuss the results of introducing a new mode in the choice process above.
