@@ -57,3 +57,5 @@ probabilities of choosing these modes?
 
 
 ## 5. Discuss the results of introducing a new mode in the choice process above.
+
+

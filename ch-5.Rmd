@@ -77,6 +77,8 @@ example_long <- mc_commute_wide %>%
               varying = 3:22)
 ```
 
+# 上面的结果导致Choice变成了True/False, 并且新增了一个alt (代表原来的"choice")
+
 ```{r ch05-head-of-example-table}
 data.frame(example_long) %>%
   # Select columns
@@ -87,7 +89,7 @@ data.frame(example_long) %>%
          idx) 
 ```
 
-```r
+```{r}
 print(data.frame(mc_commute_long$idx))
 ```
 
@@ -95,9 +97,10 @@ print(data.frame(mc_commute_long$idx))
 colnames(example_long)
 ```
 
-```r
+```{r}
 ?mc_commute_wide
 ```
+
 ```{r ch05-formula-1}
 # Function `mFormula()` is used to define multi-part formulas of the form:
 # y ~ x | z | w, which in the notation used for the anatomy of utility functions is
