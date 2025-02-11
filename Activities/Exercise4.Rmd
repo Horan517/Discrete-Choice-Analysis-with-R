@@ -1,15 +1,19 @@
 ---
-title: "Exercise5"
+title: "GEOG 738 Discrete Choice Analysis - Exercise 4"
 author: "Haoran Xu"
 date: "2025-02-05"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r ch04-load-packages, message=FALSE, cache=FALSE}
+```{r ch04-load-packages, message=FALSE, cache=FALSE, include=FALSE}
 library(dplyr) # A Grammar of Data Manipulation
 library(evd) # Functions for Extreme Value Distributions 
 library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
@@ -23,21 +27,36 @@ F(x;\mu, \sigma) = \frac{1}{1 + e^{- (x - \mu) / \sigma}}
 \]
 
 The Binomial Logit model can be written as:
+
 \[
 P_i = P(\epsilon_n < V_i - V_j) = \frac{1}{1 + e^{- (V_i - V_j)}} = \frac{e^{V_i}}{e^{V_i} + e^{V_j}}
 \]
-\( P_i \) above is the logit probability of choosing alternative \( i \),
+
+\setlength{\leftskip}{1cm}
+
+where \( P_i \) above is the logit probability of choosing alternative \( i \).
+
+\setlength{\leftskip}{0pt}
 
 The multinomial Logit models can be written as:
+
 \[
 P_i = \frac{e^{V_i}}{\sum_{j}^{J}e^{V_j}}
 \]
 
+\setlength{\leftskip}{1cm}
+
+where the number of alternatives \( J > 2 \).
+
+\setlength{\leftskip}{0pt}
+
 Both of them are closed forms.
+
 
 ## 2. Why is it that we can set the dispersion parameter in the logit probabilities to one?
 
 Because the dispersion parameter in probability distribution will not alter the ordinality of choosing different alternatives. Since it can only affect the cardinality, we can arbitrarily set it as 1 for convenience.
+
 
 ## 3. Suppose that a choice set consists of two alternatives, travel by car (c) and travel
 by blue bus (bb). The utilities of these two modes are the same, that is
@@ -50,12 +69,58 @@ If the *reference* function is applied, then probabilities of choosing these two
 
 If the *reference* function is not applied, the value of \( \mu \) becomes important in deciding the difference of \( V_{c} \) and \( V_{bb} \). If \( \mu \) is 0, meaning that the probability distribution of the difference of random utility (i.e., \( \epsilon_{n} \)) is centered at 0, the probabilities of the two modes would be equally \( 0.5 \). If \( \mu \) is not 0, both of their probabilities will not be \( 0.5 \).
 
+
 ## 4. Suppose that the transit operator of the blue buses in Question 3 decides to introduce
 a new service, namely a red bus. This red bus is identical to the blue bus
 in every respect except the color. Under these new conditions, what are the logit
 probabilities of choosing these modes?
 
+Suppose that color itself will not affect utility. Then the newly-introduced red bus service - which is identical to the blue bus in every respect except its color, will have equal probability as the blue bus, so that:
+
+\[
+V_{rb} = V_{bb} = V_c
+\]
+
+where \(V_{rb}\) is the systematic utility of traveling by red bus.
+
+Then according to the multinomial logit model, the probability of choosing an alternative \( i \) is given by:
+
+\[
+P_i = \frac{\exp(V_i)}{\exp(V_c) + \exp(V_{bb}) + \exp(V_{rb})}
+\]
+
+Then to calculate the probabilities for each mode:
+
+\[
+P_c = \frac{\exp(V_c)}{\exp(V_c) + \exp(V_{bb}) + \exp(V_{rb})}
+    = \frac{\exp(V_c)}{3\exp(V_c)}
+    = \frac{1}{3},
+\]
+
+\[
+P_{bb} = \frac{\exp(V_{bb})}{3\exp(V_{bb})} = \frac{1}{3},
+\]
+
+\[
+P_r = \frac{\exp(V_{rb})}{3\exp(V_{rb}} = \frac{1}{3}.
+\]
+
+Thus, the probability of choosing each individual mode is:
+
+  - Car: \( \frac{1}{3} \)
+  - Blue Bus: \( \frac{1}{3} \)
+  - Red Bus: \( \frac{1}{3} \)
+
+If the color has an impact on the alternatives. We could assign an extra utility (such as \( \sigma_{rb} \)) to the alternative of choosing a red bus. If \( \sigma_{rb} > 0 \), the probability of choosing the red bus over the blue bus or car will be higher and bigger than \( \frac{1}{3} \). If \( \sigma_{rb} < 0 \), the probability of choosing the red bus over the blue bus or car will be lower and smaller than \( \frac{1}{3} \).
+
 
 ## 5. Discuss the results of introducing a new mode in the choice process above.
 
+On the premise that introducing a new red bus will not affect utility over different alternative, the probability in the logit model that was originally split equally between the two modes ( \(1 / 2 \) each) is now equally divided among three modes (\( 1 / 3 \) each). However, the overall probability of choosing bus (red and blue) now (\( 2 / 3 \)) is two times of the probability of choosing car (\( 1 / 3 \)).
+
+The outcome is a simplified illustration of how independence from irrelevant alternatives (IIA) functions in a logit model. The IIA implies that the ratio of the probabilities of any two alternatives depends only on the attributes of those two alternatives, and that the way the probabilities change depends on the change on the probability that triggered the adjustments.
+
+Additionally, by introducing a new alternative, the emergence of a new probability will somehow "steal" probability from both similar modes (blue bus in the example) and dissimilar modes (car in the example), while still increasing the overall probability of the similar modes (bus) over dissimilar modes (car).
+
+There still remains another important factor to be discussed - utility brought by the color change of the red bus (\( \sigma_{rb} \)). This factor reflects the more ideal situation that might happen in real world. I think comprehensively considering all these factors and effects are necessary.
 
