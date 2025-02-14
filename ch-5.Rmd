@@ -25,7 +25,6 @@ library(mlogit) # Multinomial Logit Models
 library(plotly) # Create Interactive Web Graphics via 'plotly.js' 
 library(stargazer) # Well-Formatted Regression and Summary Statistics Tables 
 library(tidyr) # Tidy Messy Data
-library(webshot2) # Take Screenshots of Web Pages
 ```
 
 ```{r ch05-load-and-rename-data}
@@ -34,7 +33,7 @@ data("mc_commute_wide",
 ```
 
 ```{r ch05-example-of-wide-table}
-example_wide <- mc_commute_wide %>%
+example_wide <- mc_commute_wide %>
   # Select columns from the table
   select(id, choice, starts_with("time")) %>%
   # Filter three decision-makers by their `id`
@@ -78,7 +77,7 @@ example_long <- mc_commute_wide %>%
               varying = 3:22)
 ```
 
-# 上面的结果导致Choice变成了True/False, 并且新增了一个alt (代表原来的"choice")
+# 上面的结果导致Choice变成了True/False, 并且新增了一个alt (代表原来的"choice") <-- 用mlogit的前提是需要把变量的名字都code整齐(变量里最后要用.alternative结尾)
 
 ```{r ch05-head-of-example-table}
 data.frame(example_long) %>%
@@ -87,7 +86,7 @@ data.frame(example_long) %>%
          choice, 
          alt, 
          starts_with("time"), 
-         idx) 
+         idx)
 ```
 
 ```{r}
@@ -616,6 +615,5 @@ stargazer::stargazer(model0,
 
 ```{r ch05-likelihood-ratio-test-1-2}
 lrtest(model1, 
-       model2,
-       model3)
+       model2)
 ```
