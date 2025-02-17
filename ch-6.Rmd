@@ -71,7 +71,7 @@ H <- Heating %>%
               # Name of column with the choices
               choice = "depvar", 
               # Numbers of columns with attributes that vary by alternative
-              varying = c(3:12))
+              varying = 3:12)
 ```
 
 ```{r ch06-model1-summary, results="asis"}
@@ -83,7 +83,7 @@ model1 <- mlogit(depvar ~ ic,
                  varying = c(3:7))
 
 stargazer::stargazer(model1, 
-                     type = "latex",
+                     type = "text",
                      header = FALSE,
                      single.row = TRUE,
                      title = "Estimation results: Model 1 (wide data as input)")
@@ -95,7 +95,7 @@ model1 <- mlogit(depvar ~ ic,
                  reflevel = "ec")
 
 stargazer::stargazer(model1, 
-                     type = "latex",
+                     type = "text",
                      header = FALSE,
                      single.row = TRUE,
                      title = "Estimation results: Model 1 (long data as input)")
@@ -347,6 +347,7 @@ model2 <- mlogit(depvar ~ ic | region,
                  varying = c(3:7))
 
 stargazer::stargazer(model2, 
+                     type = "text",
                      header = FALSE,
                      single.row = TRUE,
                      title = "Estimation results: Model 2")
@@ -394,7 +395,8 @@ model3 <- mlogit(depvar ~ ic + oc,
                  reflevel = "ec", 
                  varying = c(3:12))
 
-stargazer::stargazer(model3, 
+stargazer::stargazer(model3,
+                     type = "text",
                      header = FALSE,
                      single.row = TRUE,
                      title = "Estimation results: Model 3")
