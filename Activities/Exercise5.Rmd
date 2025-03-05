@@ -220,8 +220,7 @@ probs2 %>%
 ## 4. In the general case, what is the value of the log-likelihood of the null (Equally
 Likely) model?
 
-can be mathematically induced
-
+LL_{null} = -N * log{J}
 
 ## 5. Use the likelihood ratio test to compare `model3` to `model2`? Discuss the results.
 What restrictions would you need to impose in `model3` to obtain `model2`?
@@ -231,7 +230,5 @@ lrtest(model2,
        model3)
 ```
 
-Restrictions: setting the alternative var. with specific coefficients (\beta_2, \beta_3, \beta_4) of `model3` to be the same value of \beta_1. 
-
-
+Restrictions: setting the alternative var. with specific coefficients (\beta_2, \beta_3, \beta_4) of `model3` to be the same value of \beta_1.
 

@@ -6,6 +6,8 @@ output:
     highlight: kate
 ---
 
+Discrete Choice Modeling 至少得有两个equations
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -33,7 +35,7 @@ data("mc_commute_wide",
 ```
 
 ```{r ch05-example-of-wide-table}
-example_wide <- mc_commute_wide %>
+example_wide <- mc_commute_wide %>% 
   # Select columns from the table
   select(id, choice, starts_with("time")) %>%
   # Filter three decision-makers by their `id`

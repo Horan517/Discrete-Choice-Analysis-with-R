@@ -88,7 +88,7 @@ stargazer::stargazer(model1,
                      single.row = TRUE,
                      title = "Estimation results: Model 1 (wide data as input)")
 ```
-
+# applying that directly to H (long) table
 ```{r ch06-model1-summary-long-table, results="asis"}
 model1 <- mlogit(depvar ~ ic,
                  H, 
