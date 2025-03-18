@@ -1,13 +1,204 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "GEOG 738 Discrete Choice Analysis - Exercise 6"
+author: "Haoran Xu"
+date: "2025-03-17"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
-1.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-Marginal Effect
+```{r ch06-load-packages, message = FALSE, cache=FALSE, include=FALSE}
+library(dplyr) # A Grammar of Data Manipulation
+library(evd) # Functions for Extreme Value Distributions 
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
+library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax 
+library(mlogit) # Multinomial Logit Models
+library(stargazer) # Well-Formatted Regression and Summary Statistics Tables 
+library(tidyr) # Tidy Messy Data
+```
 
-Elasticity
+## 1. What is the difference between a marginal effect and an elasticity?
+
+Marginal effects measure the change in the amount of probability of choosing an alternative \(P_j\) resulting from a one-unit increase in an independent variable \(x_k\), holding other variables constant.
+
+\[
+M^{P_j}_{x_k} = \frac{\partial P_j}{\partial x_k}
+\]
+
+where \(P_j\) is the probability of choosing alternative \(j\), and \(x_k\), is the independent variable.
+
+Elasticity is an indicator to summarize the way a dependent variable y changes in response to changes in an independent variable \(x_k\), which can be defined as:
+
+\[
+E^{P_j}_{x_k} = \frac{\partial P_j}{\partial x_k}\frac{x_k}{P_j}
+\]
+
+where \(P_j\) is the probability of choosing alternative \(j\), and \(x_k\), is the independent variable.
 
 
+## 2. Why is it inappropriate to calculate the elasticity of a dummy variable?
+
+Elasticity measures the percentage change in the dependent variable with the change of 1% in an independent variable. Dummy variables are used to define categorical variables typically in 1/0 numbers.
+
+The reason why it is inappropriate to calculate the elasticity of a dummy variable is that calculating the elasticity to a dummy variable is meaningless, as a "1% increase" in a dummy variable does not make sense (e.g., 1% increase in people's residential region).
+
+The only meaningful change for a dummy variable is a discrete change from 0 to 1 (e.g., adding a household in a specific residential region), which can be defined in marginal effects as:
+
+\[
+M^{P_{in}}_{x_{nk}} = P_{in}(x_{nk} = 1) - P_{in}(x_{nk} = 0)
+\]
+
+A seconde way is to measure in semi-elasticities, which are percentage change in the outcome for a discrete unit change in the dummy variable:
+
+\[
+E^{P_{in}}_{x_{nk}} = \frac{P_{in}(x_{nk} = 1) - P_{in}(x_{nk} = 0)}{P_{in}(x_{nk} = 0)}
+\]
+
+
+## 3. Use Model 3 in this chapter and calculate the marginal effects and the elasticities for operating cost at the mean of all variables.
+
+```{r load-data}
+data("Heating")
+```
+
+```{r model3-summary, results='hide'}
+model3 <- mlogit(depvar ~ ic + oc, 
+                 Heating, 
+                 shape = "wide", 
+                 choice = "depvar", 
+                 reflevel = "ec", 
+                 varying = c(3:12))
+
+stargazer::stargazer(model3,
+                     type = "latex",
+                     header = FALSE,
+                     single.row = TRUE,
+                     title = "Estimation results: Model 3")
+```
+
+```{r initialize-costs-for prediction}
+icoc_mean <- Heating[1,]
+
+mean_cost <- Heating %>% 
+  select(matches("^ic|^oc"))%>% 
+  summarise(across(.cols = everything(),
+                   mean))
+
+icoc_mean[3:12] <- mean_cost
+```
+
+Marginal Effects:
+
+```{r marginal-effects-at-mean-operation-cost-model3, results='hide'}
+effects_result <- effects(model3,
+        # Calculate the marginal effects with respect to attribute "oc"
+        covariate = "oc",
+        # Type of effects to compute: relative for probability, absolute for attribute 
+        type = "ra", 
+        data = mlogit.data(icoc_mean, 
+                           shape = "wide", 
+                           choice = "depvar", 
+                           varying = 3:12))
+```
+
+```{r}
+effects_df <- as.data.frame(effects_result)
+stargazer(effects_df, 
+          type = "text", 
+          summary = FALSE, 
+          single.row = TRUE,
+          title = "Marginal Effects of 'oc' on Choice Probabilities", 
+          label = "tab:effects")
+```
+
+Elasticities:
+
+```{r ch06-elasticities-at-mean-operation-cost-model3, results='hide'}
+effects_result2 <- effects(model3, 
+        covariate = "oc", 
+        type = "rr", 
+        data = mlogit.data(icoc_mean, 
+                           shape = "wide", 
+                           choice = "depvar", 
+                           varying = 3:12))
+```
+
+```{r}
+effects_df2 <- as.data.frame(effects_result2)
+stargazer(effects_df2, 
+          type = "text", 
+          summary = FALSE, 
+          single.row = TRUE,
+          title = "Elasticities of 'oc' on Choice Probabilities", 
+          label = "tab:effects")
+```
+
+
+## 4. Use Model 3 in this chapter to calculate the rebate needed to reach a 10% penetration rate of heat pumps.
+
+```{r}
+H_rebate <- Heating %>% 
+  mutate(ic.hp = 0.599 * ic.hp)
+```
+
+```{r}
+apply(predict(model3, 
+        newdata = mlogit.data(H_rebate,
+        shape = "wide",
+        choice = "depvar",
+        varying = c(3:12))),
+      2,
+      mean)
+```
+
+The rebate needed to reach a 10% penetration rate of heat pumps should be at least 40.1%. 
+
+## Estimate a new model that extends Model 3 by introducing the age of the household
+head. Use the electric room system (“er”) as the reference level.
+## 5. Use the likelihood ratio test to compare your new model to Model 3. Discuss the
+results.
+
+```{r model4-summary, results="asis"}
+model4 <- mlogit(depvar ~ ic + oc | agehed, 
+                 Heating, 
+                 shape = "wide", 
+                 choice = "depvar", 
+                 reflevel = "er", 
+                 varying = c(3:12))
+
+stargazer::stargazer(model4,
+                     type = "text",
+                     header = FALSE,
+                     single.row = TRUE,
+                     title = "Estimation results: Model 4")
+```
+
+```{r likelihood-ratio-test-3-4}
+lrtest(model3, 
+       model4)
+```
+
+The p-value of the liklihood test between the two models (0.06331) is slightly above 0.05, indicating that the improvement in model fit from adding the variable of age of the household head `agehed` is significant at the 10% level, even if the significance is weak.
+
+Despite the weak overall improvement, `agehed` has statistically significant effects for 3 (ec, gc, gr) out of 4 heating systems. This makes sense as older household heads are more likely to choose established systems (e.g., gas/electric central) over newer options (e.g., heat pumps).
+
+
+## 6. Is the ratio of the coefficient of installation (or operation) cost to the coefficient of age of household head meaningful? Explain.
+
+It can meaningful we are to top the meaning of the ratio in equations.
+
+The ratio of the coefficient of installation cost (`ic`) or operating cost (`oc`) to the coefficient of `agehed` reflects the marginal rate of substitution (MRS) between cost and age, which can be defined as:
+
+\[
+MRS = \frac{\beta_{cost}}{\beta_{agehed}}
+\]
+
+This ratio quantifies how much cost change to offset the effect of a 1-year increase in age on the utility of choosing a heating system, holding utility constant.
+
+This metric could be meaningful if cost and demographic attributes are considered or compared in a meaningful contexts. But since `agehed` is an individual-specific variable, not a characteristic of heating systems. Thus, the ratio does not reflect a direct trade-off between product attributes but rather how demographics interact with costs.
 

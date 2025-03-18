@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r ch05-load-packages, message=FALSE, cache=FALSE}
+```{r load-packages, message=FALSE, cache=FALSE}
 library(discrtr) # A companion package for the book Introduction to Discrete Choice Analysis with `R` 
 library(dplyr) # A Grammar of Data Manipulation
 library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
@@ -21,13 +21,13 @@ library(stargazer) # Well-Formatted Regression and Summary Statistics Tables
 library(tidyr) # Tidy Messy Data
 ```
 
-```{r ch05-load-and-rename-data}
+```{r load-and-rename-data}
 data("mc_commute_wide",
      package = "discrtr") 
 ```
 
 
-```{r ch05-reshape-full-table}
+```{r reshape-full-table}
 mc_commute_long <- mc_commute_wide %>%
   mlogit.data(shape="wide", 
               # Name of column with the choices
@@ -36,7 +36,7 @@ mc_commute_long <- mc_commute_wide %>%
               varying = 3:22)
 ```
 
-```{r ch05-formula-1}
+```{r formula-1}
 # Function `mFormula()` is used to define multi-part formulas of the form:
 # y ~ x | z | w, which in the notation used for the anatomy of utility functions is
 # choice ~ alternative vars. with generic coefficients |
@@ -46,7 +46,7 @@ mc_commute_long <- mc_commute_wide %>%
 f1 <- mFormula(choice ~ time)
 ```
 
-```{r ch05-formula-2}
+```{r formula-2}
 # Function `mFormula()` is used to define multi-part formulas of the form:
 # y ~ x | z | w, which in the notation used for the anatomy of utility functions is
 # choice ~ alternative vars. with generic coefficients |
@@ -56,11 +56,11 @@ f1 <- mFormula(choice ~ time)
 f2 <- mFormula(choice ~ time | sidewalk_density)
 ```
 
-```{r ch05-formula-3}
+```{r formula-3}
 f3 <- mFormula(choice ~ 0 | sidewalk_density | time)
 ```
 
-```{r ch05-summary-model-1}
+```{r summary-model-1}
 # Function `mlogit()` is used to estimate logit models
 # It needs a multi-part formula and a data set in long form
 model1 <- mlogit(f1,
@@ -82,7 +82,7 @@ stargazer::stargazer(model1,
                      title = "Estimation results: Model 1")
 ```
 
-```{r ch05-summary-model-2-stargazer, results="asis"}
+```{r summary-model-2-stargazer, results="asis"}
 # Note: use chunk option results="asis" to display latex output in pdf
 model2 <- mlogit(f2, 
                  mc_commute_long)
@@ -102,11 +102,11 @@ modes by sidewalk density setting travel time to the in-sample median. Use
 median sidewalk density but now for travel times of 20, 30, and 40 min. Discuss
 the results.
 
-```{r ch05-create-matrix-to-predict, include=FALSE}
+```{r create-matrix-to-predict, include=FALSE}
 mc_commute_predict <- mc_commute_long[1:12,]
 ```
 
-```{r ch05-set-values-for-predictions, include=FALSE}
+```{r set-values-for-predictions, include=FALSE}
 # Function `rep()` repeats the values in the argument a designated
 # number of times; here, the values in the sequence 0 to 60 in intervals
 # of 5 are repeated four times each (once for each alternative)
@@ -116,21 +116,21 @@ mc_commute_predict$time <- rep(seq(from = 20,
                                    each = 4)
 ```
 
-```{r ch05-median-commute-time, include=FALSE}
+```{r median-commute-time, include=FALSE}
 median(mc_commute_predict$sidewalk_density, 
        na.rm = TRUE)
 ```
 
-```{r ch05-set-time-for-prediction, include=FALSE}
+```{r set-time-for-prediction, include=FALSE}
 mc_commute_predict$time <- 22.63
 ```
 
-```{r ch05-predict-probabilities-model-2, include=FALSE}
+```{r predict-probabilities-model-2, include=FALSE}
 probs <- predict(model2,
                  newdata = mc_commute_predict)
 ```
 
-```{r ch05-reshape-table, include=FALSE}
+```{r reshape-table, include=FALSE}
 probs <- data.frame(time = seq(from = 20,
                                to = 40,
                                by = 10),
@@ -144,7 +144,7 @@ probs <- data.frame(time = seq(from = 20,
                values_to = "Probability")
 ```
 
-```{r ch05-probability-plot, echo=FALSE}
+```{r probability-plot, echo=FALSE}
 probs %>%
   # Create ggplot object; map `sidewalk_density` to the y-axis
   # `Probability` to the x-axis, and the color of geometric
@@ -159,10 +159,10 @@ probs %>%
 ```
 
 
-### 2. Estimate a model using formula `f3` (call it `model3`). Discuss the output of this
+## 2. Estimate a model using formula `f3` (call it `model3`). Discuss the output of this
 model.
 
-```{r ch05-summary-model-3-change-of-reference, results="asis"}
+```{r summary-model-3-change-of-reference, results="asis"}
 # Note: use chunk option results="asis" to display latex output in pdf
 model3 <- mlogit(f3,
                  mc_commute_long, 
@@ -179,20 +179,20 @@ stargazer::stargazer(model3,
 ```
 
 
-### 3. Use `model3` to calculate the probability of choosing different modes by insample
+## 3. Use `model3` to calculate the probability of choosing different modes by insample
 median sidewalk density but now for travel times of 20, 30, and 40 min.
 Discuss the results.
 
-```{r ch05-predict-probabilities-model-2}
-probs2 <- predict(model3,
+```{r predict-probabilities-model-3}
+probs3 <- predict(model3,
                  newdata = mc_commute_predict)
 ```
 
-```{r ch05-reshape-table}
-probs2 <- data.frame(time = seq(from = 20,
+```{r}
+probs3 <- data.frame(time = seq(from = 20,
                                to = 40,
                                by = 10),
-                    probs2) %>% 
+                    probs3) %>% 
   # Pivot longer all columns _except_ `sidewalk_density`
   pivot_longer(cols = -time,
                # The column names become a new column called "Mode"
@@ -202,8 +202,8 @@ probs2 <- data.frame(time = seq(from = 20,
                values_to = "Probability")
 ```
 
-```{r ch05-probability-plot}
-probs2 %>%
+```{r}
+probs3 %>%
   # Create ggplot object; map `sidewalk_density` to the y-axis
   # `Probability` to the x-axis, and the color of geometric
   # objects to `Mode`
@@ -220,15 +220,19 @@ probs2 %>%
 ## 4. In the general case, what is the value of the log-likelihood of the null (Equally
 Likely) model?
 
+\[
 LL_{null} = -N * log{J}
+\]
 
 ## 5. Use the likelihood ratio test to compare `model3` to `model2`? Discuss the results.
 What restrictions would you need to impose in `model3` to obtain `model2`?
 
-```{r ch05-likelihood-ratio-test-2-3}
+```{r likelihood-ratio-test-2-3}
 lrtest(model2,
        model3)
 ```
 
-Restrictions: setting the alternative var. with specific coefficients (\beta_2, \beta_3, \beta_4) of `model3` to be the same value of \beta_1.
+The very small p-value (< 2.2e-16) means we strongly reject the null hypothesis, which suggests that Model 2 fits significantly better than Model 1. Since Model 2 has a better fit, this indicates that including "time" as an alternative-specific predictor provides valuable information for modeling "choice".
+
+Restrictions: setting the alternative var. with specific coefficients (\(\beta_2\), \(\beta_3\), \(\beta_4)\) of `model3` to be the same value of \(\beta_1\).
 
