@@ -221,6 +221,8 @@ nl1 <- mlogit(depvar ~ oc + ic, H,
 summary(nl1)
 ```
 
+The re-estimated nested logit model groups alternatives by energy type with a single inclusive value coefficient. Both cost variables (`oc`, `ic`) are negative and statistically significant, aligning with expectations—higher costs reduce utility. However, as the iv parameter (2.949) exceeds 1, violating the nested logit model’s theoretical requirement for consistency. This suggests improper nesting or misspecification.
 
+Alternative-specific constants reveal lower baseline utility for gas room (`gr`) and heat pump (`hp`) compared to electric central (`ec`), but gas central (`gc`) and electric room (`er`) constants are insignificant. The model’s poor fit (McFadden \(R^2 = 0.017\)) further questions its validity.
 
 
