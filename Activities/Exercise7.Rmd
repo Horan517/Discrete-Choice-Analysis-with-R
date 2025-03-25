@@ -1,0 +1,226 @@
+---
+title: "Exercise7"
+author: "Haoran Xu"
+date: "2025-03-25"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r ch07-load-packages, message = FALSE, cache=FALSE}
+library(dplyr) # A Grammar of Data Manipulation
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
+library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax
+library(mlogit) # Multinomial Logit Models
+```
+
+```{r ch07-load-heating-data}
+data("Heating",
+     package = "mlogit")
+```
+
+```{r ch07-convert-heating-data-to-long-format}
+H <- mlogit.data(Heating, 
+                 shape = "wide", 
+                 choice = "depvar", 
+                 varying = c(3:12))
+```
+
+## 1. Restate the blue bus-red bus situation as a nested logit model. What are the
+marginal and conditional probabilities of this model?
+
+The nested model organizes choices hierarchically. At the top level, individuals choose between two nests - either Car or Bus Nest. The Bus Nest contains the correlated alternatives: Blue Bus (bb) and Red Bus (rb). 
+The dissimilarity parameter (\( \lambda \)) quantifies the degree of correlation within the bus nest. If \( \lambda \) tends to 1, it would indicate the correlation between the variables within the nests is zero.
+
+First, define the aggregates utilities of the bus alternatives: \( e^{IV_{bus}} \)
+
+Then the probabilities of choosing car:
+\[
+P_{car} = \frac{e^{V_{car}}}{e^{V_{car}} + e^{IV_{bus}}}
+\]
+
+The probabilities of choosing car:
+\[
+P_{bus} = \frac{e^{IV_{bus}}}{e^{V_{car}} + e^{IV_{bus}}}
+\]
+
+### Conditional Probabilities
+Probability of Blue Bus in the Bus Nest:
+\[
+P_{bb|bus} = \frac{e^{V_{bb}/\lambda}}{e^{V_{bb}/\lambda} + e^{V_{rb}/\lambda}}
+\]
+
+Probability of Red Bus in the Bus Nest:
+\[
+P_{rb|bus} = \frac{e^{V_{rb}/\lambda}}{e^{V_{bb}/\lambda} + e^{V_{rb}/\lambda}}
+\]
+
+### Mariginal Probabilities
+For the blue bus:
+\[
+P_{bb} = P_{bus} * P_{bb|bus}
+\]
+
+For the red bus:
+\[
+P_{rb} = P_{bus} * P_{rb|bus}
+\]
+
+
+## 2. Usemodel `nl2` in this chapter and calculate the direct-point elasticity at the mean
+values of the variables, for an increase in the installation costs of Gas Central
+systems.
+
+```{r ch07-nested-logit-model2}
+nl2 <- mlogit(depvar ~ ic + oc, H,
+             nests = list(room = c( 'er', 'gr'), central = c('ec', 'gc', 'hp')),
+             # this will set all lambdas to be the same
+             un.nest.el = TRUE,
+             steptol = 1e-12)
+summary(nl2)
+```
+
+```{r ch07-model-matrix-for-effects}
+X_mean <- model.matrix(nl2)[1:5,]
+alt <- index(H)$alt[1:5]
+```
+
+```{r ch07-calculate-mean-costs-for-effects}
+mean_ic <- H %>% 
+  group_by(alt) %>% 
+  summarize(ic = mean(ic)) %>%
+  arrange(alt)
+
+mean_oc <- H %>% 
+  group_by(alt) %>% 
+  summarize(oc = mean(oc)) %>%
+  arrange(alt)
+```
+
+```{r ch07-replace-mean-costs}
+X_mean[,5] <- mean_ic$ic
+X_mean[,6] <- mean_oc$oc
+```
+
+```{r ch07-nested-logit-model2-probabilities-at-means}
+# Electric central
+exp_V_ec <- 
+  exp((X_mean[alt == c("ec"), "oc"] * coef(nl2)["oc"] + 
+         X_mean[alt == c("ec"), "ic"] * coef(nl2)["ic"])
+                / coef(nl2)["iv"])
+# Electric room
+exp_V_er <- 
+  exp((coef(nl2)["(Intercept):er"] + 
+         X_mean[alt == c("er"), "oc"] * coef(nl2)["oc"] + 
+         X_mean[alt == c("er"), "ic"] * coef(nl2)["ic"]) 
+                / coef(nl2)["iv"])
+# Gas central
+exp_V_gc <- 
+  exp((coef(nl2)["(Intercept):gc"] + 
+         X_mean[alt == c("gc"), "oc"] * coef(nl2)["oc"] +
+         X_mean[alt == c("gc"), "ic"] * coef(nl2)["ic"])
+                / coef(nl2)["iv"])
+
+# Gas room
+exp_V_gr <- 
+  exp((coef(nl2)["(Intercept):gr"] + 
+         X_mean[alt == c("gr"), "oc"] * coef(nl2)["oc"] + 
+         X_mean[alt == c("gr"), "ic"] * coef(nl2)["ic"]) 
+                / coef(nl2)["iv"])
+
+# Heat pump
+exp_V_hp <- 
+  exp((coef(nl2)["(Intercept):hp"] + 
+         X_mean[alt == c("hp"), "oc"] * coef(nl2)["oc"] + 
+         X_mean[alt == c("hp"), "ic"] * coef(nl2)["ic"])
+                / coef(nl2)["iv"])
+```
+
+```{r ch07-conditional-probabilities-nested-logit-model2-at-means}
+# Conditional probabilities of systems within the central nest
+cp_c <- data.frame(ec = exp_V_ec / (exp_V_ec + exp_V_gc + exp_V_hp),
+                       gc = exp_V_gc / (exp_V_ec + exp_V_gc + exp_V_hp),
+                       hp = exp_V_hp / (exp_V_ec + exp_V_gc + exp_V_hp))
+
+# Conditional probabilities of systems within the room nest
+cp_r <- data.frame(er = exp_V_er / (exp_V_er + exp_V_gr),
+                       gr = exp_V_gr / (exp_V_er + exp_V_gr))
+```
+
+```{r ch07-marginal-probabilities-nested-logit-model2-at-means}
+#After removing ec
+mp <- data.frame(central = exp(coef(nl2)["iv"] * log(exp_V_ec + exp_V_gc + exp_V_hp)) 
+                       / (exp(coef(nl2)["iv"] * log(exp_V_ec + exp_V_gc + exp_V_hp)) + 
+                            exp((coef(nl2)["iv"] * log(exp_V_er + exp_V_gr)))),
+                       room = exp(coef(nl2)["iv"] * log(exp_V_er + exp_V_gr)) / 
+                         (exp(coef(nl2)["iv"] * log(exp_V_gc + exp_V_hp)) + 
+                            exp((coef(nl2)["iv"] * log(exp_V_er + exp_V_gr)))))
+```
+
+```{r ch07-probabilities-nested-logit-model2-at-means}
+nlp <- data.frame(system = c("ec", "er", "gc", "gr", "hp"),
+                  # Conditional probability
+                  cp = c(cp_c$ec, cp_r$er, cp_c$gc, cp_r$gr, cp_c$hp),
+                  # Marginal probability
+                  mp = c(mp$central, mp$room, mp$central, mp$room, mp$central),
+                  beta_ic = c(as.numeric(nl2$coefficients["ic"])),
+                  beta_oc = c(as.numeric(nl2$coefficients["oc"])),
+                  lambda = c(1 - as.numeric(nl2$coefficients["iv"]))) %>% 
+  # Joint probability
+  mutate(p = cp * mp)
+```
+
+```{r ch07}
+nlp <- cbind(nlp, X_mean[,5:6]) %>%
+  # Increase installation cost 1%
+  mutate(ic_1pct = if_else(nlp$system == "gc", 1.01 * ic, ic))
+```
+
+```{r ch07-direct-elasticity-at-mean}
+direct_elasticities <- nlp %>%
+  transmute(DEM = ((1 - mp)    +    (1 - cp) * (1 - lambda)/lambda)    *    beta_ic * ic)
+
+direct_elasticities
+```
+
+## 3. Use model `nl2` in this chapter and calculate the cross-point elasticity at the mean values of the variables, for a 1% increase in the operation costs of Gas Central
+systems.
+
+```{r ch07-cross-elasticity-at-mean}
+elasticities <- nlp %>%
+  transmute(CEM_ec = -(mp    +  (1 - lambda)/lambda * cp)    *    beta_ic * mean_ic$ic[mean_ic == "ec"],
+            CEM_er = -(mp    +  (1 - lambda)/lambda * cp)    *    beta_ic * mean_ic$ic[mean_ic == "er"],
+            CEM_gc = -(mp    +  (1 - lambda)/lambda * cp)    *    beta_ic * mean_ic$ic[mean_ic == "gc"],
+            CEM_gr = -(mp    +  (1 - lambda)/lambda * cp)    *    beta_ic * mean_ic$ic[mean_ic == "gr"],
+            CEM_hp = -(mp    +  (1 - lambda)/lambda * cp)    *    beta_ic * mean_ic$ic[mean_ic == "hp"]) %>% 
+  # Transmute so that each row is the elasticity due to changes to a system
+  t()
+```
+
+```{r}
+diag(elasticities) <- direct_elasticities$DEM
+```
+
+```{r}
+elasticities
+```
+
+
+## 4. Re-estimate the nested logit model in this chapter, but change the nests to types of energy as follows: - Gas: gas central, gas room. - Electricity: electric central, electric room, heat pump. Use a single coefficient for the inclusive variables (i.e., set un.nest.el = TRUE). Are the results reasonable? Discuss.
+
+```{r ch07-nested-logit-model1}
+nl1 <- mlogit(depvar ~ oc + ic, H,
+             nests = list(gas = c('gc', 'gr'),
+                          electrical = c('ec', 'er', 'hp')),
+              un.nest.el = TRUE,
+             steptol = 1e-12)
+summary(nl1)
+```
+
+
+
+
