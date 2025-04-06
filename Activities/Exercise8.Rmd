@@ -1,0 +1,49 @@
+---
+title: "Exercise8"
+author: "Haoran Xu"
+output:
+  rmdformats::robobook:
+    highlight: kate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r ch08-load-packages, message=FALSE, cache=FALSE}
+library(dplyr) # A Grammar of Data Manipulation
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
+library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax
+library(mlogit) # Multinomial Logit Models
+```
+
+```{r ch08-load-data}
+data("Heating")
+```
+
+```{r ch08-prepare-data}
+H <- mlogit.data(Heating, 
+                 shape = "wide", 
+                 choice = "depvar", 
+                 varying = c(3:12))
+```
+
+## 1. Repeat the illustrative accept-reject simulation multiple times (e.g., `s` = 1000) using `r` = 100 and summarize the results in the form of a histogram or frequency polygon.Next, do the same experiment butwith `r` = 1000 and `r` = 5000. Compare to the exact area and discuss your results. Hint: You can simultaneously draw `s` × `r` random numbers and then collect them in `s` groups (see package {dplyr} functions `group_by()` and `summarize()`).
+
+
+
+## 2. Re-estimate the multinomial probit model in this chapter, still with `r` = 50 but using a different random seed. Do this several times. The estimated values of the parameters will change, which is to be expected...but which ones change more? Why do you think this happens?
+
+
+
+
+
+## 3. Use the models you estimated in Question 2 and repeat the scenario where the installation cost of gas central systems increases by 15%.What can you say about the patterns of substitution when you calculate them with different models? What would you do to be more confident about the estimated patterns of substitution?
+
+
+
+
+## 4. Re-estimate the multinomial probit model in this chapter with `r` = 50 and the seed set to 3245, but change the reference level to “ec”. What happens? What do you think are the implications for experimenting with multinomial probit model specifications?
+
+
+

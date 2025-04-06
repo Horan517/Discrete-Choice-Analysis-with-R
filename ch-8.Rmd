@@ -57,7 +57,7 @@ ggplot(data = norm_pdf,
 set.seed(35739)
 
 # Set number of random draws
-r <- 100
+r <- 1000
 sim_pdf <- data.frame(x = runif(r, 
                                 # Draw values with uniform probability in the 
                                 # interval of xmin and xmax
@@ -153,14 +153,17 @@ prob1 <- mlogit(depvar ~ ic + oc,
                 H, 
                 reflevel = "gc", 
                 probit = TRUE, 
+                # can set the seed to control the random numbers (parameter1)
                 seed = 3245,
-                R = 50)
+                # number of draws (parameter2)
+                R = 10)
 
 # Time the process
 end_time_prob1 <- Sys.time()
 estimation_time_prob1 <- end_time_prob1 - start_time_prob1
 
-stargazer::stargazer(prob1, 
+stargazer::stargazer(prob1,
+                     type = "text",
                      header = FALSE,
                      single.row = TRUE,
                      title = "Estimation results: Multinomial Probit Model 1")

@@ -1,0 +1,307 @@
+---
+title: "Exercise 9"
+author: "Haoran Xu"
+output:
+  pdf_document: default
+  rmdformats::robobook:
+    highlight: kate
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r ch09-load-packages, message=FALSE, cache=FALSE, include=FALSE}
+library(dplyr) # A Grammar of Data Manipulation
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
+library(gmnl) # Multinomial Logit Models with Random Parameters 
+library(gridExtra) # Miscellaneous Functions for "Grid" Graphics 
+library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax 
+library(mlogit) # Multinomial Logit Models 
+library(stargazer) # Well-Formatted Regression and Summary Statistics Tables 
+library(tibble) # Simple Data Frames
+library(tidyr) # Tidy Messy Data
+library(AER) # Applied Econometrics with R 
+```
+
+```{r ch09-load-data, include=FALSE}
+data("RiskyTransport", 
+     package = "mlogit")
+```
+
+```{r ch09-identify-full-choice-set, include=FALSE}
+all_available <- RiskyTransport %>% 
+  group_by(chid) %>% 
+  summarise(no_rows = length(chid), .groups = 'drop') %>% 
+  filter(no_rows == 4) %>% select(chid)
+```
+
+```{r ch09-filter-full-choice-set, include=FALSE}
+RT <- inner_join(RiskyTransport, 
+                 all_available, 
+                 by = "chid") %>%
+  drop_na()
+```
+
+```{r ch09-add-interactions, include=FALSE}
+RT <- RT %>% 
+  mutate(`cost:dwage` = cost * dwage,
+         `risk:dwage` = risk * dwage,
+         dwage2 = dwage^2)
+```
+
+```{r ch09-pre-processing-data, include=FALSE}
+RT <- mlogit.data(RT, 
+                   choice = "choice", 
+                   shape = "long", 
+                   alt.var = "mode",
+                   id.var = "id",
+                   chid.var = "chid")
+```
+
+```{r ch09-estimate-lc3, message=FALSE, include=FALSE}
+lc3 <- gmnl(choice ~ cost + risk | 0 | 0 | 0 | 1, 
+           data = RT,
+           model = 'lc', 
+           Q = 3,
+           panel = TRUE,
+           method = "bhhh")
+
+summary(lc3)
+```
+
+
+## 1. What does it mean if all parameters in the latent class probabilities are nonsignificant?
+
+If the parameters in the latent class probabilities are non-significant, it suggests that the coefficients (i.e., \( \gamma_{q} \)) are approximate to 0. This will result in the class-membership probabilities for latent classes to be roughly equally split with each other, causing the class differentiation to be not systematic and meaningful. The causes of this result from over-fitting (the number of latent classes are set for too much), or that the population characteristics do not exhibit intrinsic and meaningful heterogeneity (or taste variation).
+
+
+## 2. Use the model LC3 in this chapter to calculate the shares of the sample in each of the three latent classes.
+
+```{r}
+# calculate the probabilities of three latent classes
+p_1 <- 1 / (1 + as.numeric(exp(lc3$coefficients[7])) + as.numeric(exp(lc3$coefficients[8])))
+
+p_2 <- as.numeric(exp(lc3$coefficients[7])) / (1 + as.numeric(exp(lc3$coefficients[7])) +
+                                                 as.numeric(exp(lc3$coefficients[8])))
+
+p_3 <- as.numeric(exp(lc3$coefficients[8])) / (1 + as.numeric(exp(lc3$coefficients[7])) +
+                                                 as.numeric(exp(lc3$coefficients[8])))
+
+cat(sprintf("Class 1 share: %.2f%%\nClass 2 share: %.2f%%\nClass 3 share: %.2f%%", 
+            p_1 * 100, p_2 * 100, p_3 * 100))
+```
+
+```{r, eval=FALSE, include=FALSE}
+# second way of printing the percentage with two digits
+cat("Class 1 share:", round(p_1, 3), "\n",
+    "Class 2 share:", round(p_2, 3), "\n",
+    "Class 3 share:", round(p_3, 3))
+
+# third way of printing the percentage with two digits
+cat("Class 1 share:", format(round(p_1 * 100, 2), nsmall = 2), "%\n",
+    "Class 2 share:", format(round(p_2 * 100, 2), nsmall = 2), "%\n",
+    "Class 3 share:", format(round(p_3 * 100, 2), nsmall = 2), "%\n")
+```
+
+```{r, eval=FALSE, include=FALSE}
+## a way to calculate the predicted probability of each alternative in each latent class
+
+# Coefficients for each class
+coef_class1 <- c(cost = -0.1151451, risk = -0.0365262)
+coef_class2 <- c(cost = -0.0678147, risk = -2.4147330)
+coef_class3 <- c(cost = 0.0097494, risk = -0.2766326)
+
+# Convert data to a dataframe
+RT_df <- as.data.frame(RT)
+
+# create a list to store the mode shares in each latente class
+mode_shares <- list(
+  Class1 = numeric(4),
+  Class2 = numeric(4),
+  Class3 = numeric(4)
+)
+
+names(mode_shares$Class1) <- c("Helicopter", "WaterTaxi", "Ferry", "Hovercraft")
+names(mode_shares$Class2) <- names(mode_shares$Class1)
+names(mode_shares$Class3) <- names(mode_shares$Class1)
+
+# Loop through each choice situation (chid)
+for (chid in unique(RT_df$chid)) {
+  # Subset data for the current choice situation
+  chid_data <- RT_df[RT_df$chid == chid, ]
+  
+  # Compute utilities for each mode in each class
+  V_class1 <- coef_class1["cost"] * chid_data$cost + coef_class1["risk"] * chid_data$risk
+  V_class2 <- coef_class2["cost"] * chid_data$cost + coef_class2["risk"] * chid_data$risk
+  V_class3 <- coef_class3["cost"] * chid_data$cost + coef_class3["risk"] * chid_data$risk
+  
+  # Compute probabilities using MNL formula
+  prob_class1 <- exp(V_class1) / sum(exp(V_class1))
+  prob_class2 <- exp(V_class2) / sum(exp(V_class2))
+  prob_class3 <- exp(V_class3) / sum(exp(V_class3))
+  
+  # Accumulate probabilities
+  mode_shares$Class1 <- mode_shares$Class1 + prob_class1
+  mode_shares$Class2 <- mode_shares$Class2 + prob_class2
+  mode_shares$Class3 <- mode_shares$Class3 + prob_class3
+}
+
+# Average across all choice situations
+n_obs <- length(unique(RT_df$chid))
+mode_shares$Class1 <- mode_shares$Class1 / n_obs
+mode_shares$Class2 <- mode_shares$Class2 / n_obs
+mode_shares$Class3 <- mode_shares$Class3 / n_obs
+
+# Display results
+cat("Class 1 Mode Shares:\n")
+print(round(mode_shares$Class1, 3))
+cat("\nClass 2 Mode Shares:\n")
+print(round(mode_shares$Class2, 3))
+cat("\nClass 3 Mode Shares:\n")
+print(round(mode_shares$Class3, 3))
+```
+
+
+## 3. Use model LC2-COV in this chapter and calculate the willingness to pay for reducing the risk of accidental death for each latent class. How do these values compare to the WTP we estimated using the base multinomial logit model at the beginning of the chapter (i.e., `mnl.rt0`)? Discuss.
+
+```{r ch09-estimate-lc2-cov, message=FALSE, results='hide'}
+lc2.cov <- gmnl(choice ~ cost + risk | 0 | 0 | 0 | dwage, 
+           data = RT,
+           model = 'lc', 
+           Q = 2,
+           panel = TRUE,
+           method = "nm",
+           iterlim = 1200)
+summary(lc2.cov)
+```
+
+```{r}
+WTP_c1 <- as.numeric(lc2.cov$coefficients[2] / lc2.cov$coefficients[1])
+
+WTP_c2 <- as.numeric(lc2.cov$coefficients[4] / lc2.cov$coefficients[3])
+
+cat("Willingness to pay of Class 1:", round(WTP_c1, 2), "\n",
+    "Willingness to pay of Class 2:", round(WTP_c2, 2))
+```
+
+First, the latent class model (LC2-COV) produced counterintuitive WTP estimates, which are -0.74 for Class 1 and -338.28 for Class 2, both negative and inconsistent with rational economic behavior. The results hugely differentiate from the WTP (18.06) in the base Multinomial Logit (MNL) model. The negative WTP in the latent classes arises from possibly problematic coefficient signs, that is, Class 1 exhibits a non-significant "positive" risk coefficient, implying risk-seeking behavior (\( p = 0.415 \)), while Class 2 shows a non-significant "positive" cost coefficient (\( p = 0.566 \)), suggesting a preference for higher costs. This does not comply with typical socioeconomic behavior of humans
+ 
+
+## 4. Load the following data set from the `AER` package. Estimate a latent class logitmodel using this data set. Justify your modeling decisions, including the number of classes to use and the use of covariates.
+
+```{r ch09-exercise-load-data} 
+data("TravelMode", package = "AER")
+```
+
+Final model chosen as below:
+
+```{r ch10-format-data}
+TM <- mlogit.data(TravelMode, 
+                  choice = "choice", 
+                  shape = "long",
+                  id.var = "individual",
+                  alt.levels = c("air", 
+                                 "train", 
+                                 "bus", 
+                                 "car"),
+                  alt.var = "mode")
+
+# different than the example in ch-9, as "The TravelMode dataset contains cross-sectional
+# data (one choice per individual), so panel estimation is invalid."
+# iteration limit is set as 10000 to help converge
+lc_size <- gmnl(choice ~ wait + vcost + travel | 0 | 0 | 0 | size,
+           data = TM,
+           model = 'lc', 
+           Q = 2,
+           panel = FALSE,
+           method = "nm",
+           iterlim = 10000)
+
+
+summary(lc_size)
+
+as.numeric(2 * length(coef(lc_size)) - 2 * lc_size$logLik$maximum)
+```
+```{r}
+lc_size.summary <- rownames_to_column(data.frame(summary(lc_size)$CoefTable), "Variable") %>% 
+  transmute(Variable, Estimate, pval = `Pr...z..`)
+
+kable(lc_size.summary, 
+      "latex",
+      booktabs= TRUE,
+      col.names = c("Variable",
+                    "Estimate",
+                    "p-value"),
+      caption = "\\label{tab:base-models}Base models: multinomial logit (MNL), latent class Q = 2 (LC2), latent class Q = 3 (LC3)") %>%
+  kable_styling() %>%
+  footnote(general = c(paste0("Latent Class (Q=2) = ", round(lc_size$logLik$maximum, digits = 3))))
+```
+
+Other models I experimented with:
+
+```{r, eval=FALSE, results='hide'}
+lc_income_size <- gmnl(choice ~ wait + vcost + travel | 0 | 0 | 0 | income + size,
+           data = TM,
+           model = 'lc', 
+           Q = 2,
+           panel = FALSE, # different than the example in ch-9, as "The TravelMode dataset contains cross-sectional data (one choice per individual), so panel estimation is invalid."
+           method = "nm",
+           iterlim = 10000)
+
+summary(lc_income_size)
+
+lc_income <- gmnl(choice ~ wait + vcost + travel | 0 | 0 | 0 | income,
+           data = TM,
+           model = 'lc', 
+           Q = 2,
+           panel = FALSE,
+           method = "nm",
+           iterlim = 10000)
+
+summary(lc_income)
+
+lc_income_size3 <- gmnl(choice ~ wait + vcost + travel | 0 | 0 | 0 | income + size,
+           data = TM,
+           model = 'lc', 
+           Q = 3,
+           panel = FALSE,
+           method = "nm",
+           iterlim = 10000)
+
+summary(lc_income_size3)
+
+lc_income3 <- gmnl(choice ~ wait + vcost + travel | 0 | 0 | 0 | income,
+           data = TM,
+           model = 'lc', 
+           Q = 3,
+           panel = FALSE,
+           method = "nm",
+           iterlim = 10000)
+
+summary(lc_income3)
+
+lc_size3 <- gmnl(choice ~ wait + vcost + travel | 0 | 0 | 0 | size,
+           data = TM,
+           model = 'lc', 
+           Q = 3,
+           panel = FALSE,
+           method = "nm",
+           iterlim = 10000)
+
+summary(lc_size3)
+
+as.numeric(2 * length(coef(lc_income_size)) - 2 * lc_income_size$logLik$maximum)
+as.numeric(2 * length(coef(lc_income)) - 2 * lc_income$logLik$maximum)
+as.numeric(2 * length(coef(lc_income_size3)) - 2 * lc_income_size3$logLik$maximum)
+as.numeric(2 * length(coef(lc_income3)) - 2 * lc_income3$logLik$maximum)
+as.numeric(2 * length(coef(lc_size3)) - 2 * lc_size3$logLik$maximum)
+```
+
+I experimented with different combinations of individual variables (considering `income + size`, `income`, and `size`) and the number of latent classes (`2` and `3`), thus producing 6 models. To make sure models converge successfully, I set the iteration times as 10000, resulting 5 models converging successfully (except for the one only considering `size` in 3 latent classes). Among all of them, the best model with the smallest AIC (445.37) is the model that only considers `size` set in exploring 2 latent classes.
+
+In the model results, Class 1 shows counterintuitive preferences with positive coefficients to waiting time (`p = 0.004`) alongside negative coefficients to vehicle cost (`p < 0.001`), suggesting tolerance for longer waits if costs are low. Class 2 displays typically rational behavior, as this class of population reacts negatively to waiting time (`p < 0.001`) but positively to vehicle cost (`p < 0.001`), indicating willingness to pay more for shorter waits. 
+
+Regarding the individual variable, household size (`p = 0.027`) significantly predicts membership in Class 2, implying larger households prioritize cost-tolerant, waiting-time-averse choices. 
+
