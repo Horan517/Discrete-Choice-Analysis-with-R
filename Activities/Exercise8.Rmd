@@ -1,7 +1,8 @@
 ---
-title: "Exercise8"
+title: "Exercise 8"
 author: "Haoran Xu"
 output:
+  pdf_document: default
   rmdformats::robobook:
     highlight: kate
 ---
@@ -10,29 +11,214 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r ch08-load-packages, message=FALSE, cache=FALSE}
+```{r ch08-load-packages, message=FALSE, cache=FALSE, include=FALSE}
 library(dplyr) # A Grammar of Data Manipulation
 library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
 library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax
 library(mlogit) # Multinomial Logit Models
 ```
 
-```{r ch08-load-data}
+## 1. Repeat the illustrative accept-reject simulation multiple times (e.g., `s` = 1000) using `r` = 100 and summarize the results in the form of a histogram or frequency polygon. Next, do the same experiment butwith `r` = 1000 and `r` = 5000. Compare to the exact area and discuss your results. Hint: You can simultaneously draw `s` × `r` random numbers and then collect them in `s` groups (see package {dplyr} functions `group_by()` and `summarize()`).
+
+```{r s1000-and-r100}
+# Set seed for replicability (this defines a starting number from which the sequence of random numbers is generated )
+set.seed(35739)
+
+norm_pdf <- data.frame(x = seq(0.2, 
+                               1.2, 
+                               0.01)) %>%
+  mutate(f = dnorm(x, 
+                   mean = 0, 
+                   sd = 0.5))
+
+# setting parameters
+r <- 100
+s <- 1000   # Number of simulations
+xmin <- 0.2
+xmax <- 1.2
+fmax <- max(norm_pdf$f)  # Max height of PDF
+
+sim_pdf <- data.frame(
+  sim_group = rep(1:s, each = r),  # Create 1000 groups of 100 draws
+  x = runif(s * r, xmin, xmax),     # All x-values
+  fsim = runif(s * r, 0, fmax)      # All y-values
+)
+
+sim_pdf <- sim_pdf %>%
+  mutate(
+    f = dnorm(x, mean = 0, sd = 0.5),
+    status = ifelse(fsim <= f, "accept", "reject")
+  )
+
+# Calculate acceptance rate per simulation group
+accept_rates <- sim_pdf %>%
+  group_by(sim_group) %>%
+  summarize(accept_rate = sum(status == "accept") / r)
+
+# Theoretical acceptance probability (for comparison)
+theoretical_prob <- integrate(
+  function(x) dnorm(x, 0, 0.5), 
+  lower = xmin, 
+  upper = xmax
+)$value / ((xmax - xmin) * fmax)
+
+# Plot histogram of acceptance rates
+ggplot(accept_rates, aes(x = accept_rate)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    bins = 30,
+    fill = "skyblue",
+    color = "black"
+  ) +
+  geom_vline(
+    xintercept = theoretical_prob,
+    color = "red",
+    linetype = "dashed",
+    linewidth = 1
+  ) +
+  labs(
+    title = "Acceptance Rate Distribution (1000 Simulations with 100 draws)",
+    x = "Acceptance Rate",
+    y = "Density"
+  ) +
+  annotate(
+    "text",
+    x = theoretical_prob + 0.02,
+    y = 15,
+    label = paste0("Theoretical: ", round(theoretical_prob, 3)),
+    color = "red"
+  )
+```
+
+The codes for \( r \) = 1000 and \( r \) = 5000 are similar, the histograms for each are listed below.
+
+```{r s1000-and-r1000, echo=FALSE}
+# Set seed for replicability (this defines a starting number from which the sequence of random numbers is generated )
+set.seed(35739)
+
+# setting parameters
+r <- 1000
+s <- 1000   # Number of simulations
+xmin <- 0.2
+xmax <- 1.2
+fmax <- max(norm_pdf$f)  # Max height of PDF
+
+sim_pdf2 <- data.frame(
+  sim_group = rep(1:s, each = r),  # Create 1000 groups of 100 draws
+  x = runif(s * r, xmin, xmax),     # All x-values
+  fsim = runif(s * r, 0, fmax)      # All y-values
+)
+
+sim_pdf2 <- sim_pdf2 %>%
+  mutate(
+    f = dnorm(x, mean = 0, sd = 0.5),
+    status = ifelse(fsim <= f, "accept", "reject")
+  )
+
+# Calculate acceptance rate per simulation group
+accept_rates2 <- sim_pdf2 %>%
+  group_by(sim_group) %>%
+  summarize(accept_rate = sum(status == "accept") / r)
+
+# Plot histogram of acceptance rates
+ggplot(accept_rates2, aes(x = accept_rate)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    bins = 30,
+    fill = "skyblue",
+    color = "black"
+  ) +
+  geom_vline(
+    xintercept = theoretical_prob,
+    color = "red",
+    linetype = "dashed",
+    linewidth = 1
+  ) +
+  labs(
+    title = "Acceptance Rate Distribution (1000 Simulations with 1000 draws)",
+    x = "Acceptance Rate",
+    y = "Density"
+  ) +
+  annotate(
+    "text",
+    x = theoretical_prob + 0.02,
+    y = 15,
+    label = paste0("Theoretical: ", round(theoretical_prob, 3)),
+    color = "red"
+  )
+```
+
+```{r s1000-and-r5000, echo=FALSE}
+# Set seed for replicability (this defines a starting number from which the sequence of random numbers is generated )
+set.seed(35739)
+
+# setting parameters
+r <- 5000
+s <- 1000   # Number of simulations
+xmin <- 0.2
+xmax <- 1.2
+fmax <- max(norm_pdf$f)  # Max height of PDF
+
+sim_pdf3 <- data.frame(
+  sim_group = rep(1:s, each = r),  # Create 1000 groups of 100 draws
+  x = runif(s * r, xmin, xmax),     # All x-values
+  fsim = runif(s * r, 0, fmax)      # All y-values
+)
+
+sim_pdf3 <- sim_pdf3 %>%
+  mutate(
+    f = dnorm(x, mean = 0, sd = 0.5),
+    status = ifelse(fsim <= f, "accept", "reject")
+  )
+
+# Calculate acceptance rate per simulation group
+accept_rates3 <- sim_pdf3 %>%
+  group_by(sim_group) %>%
+  summarize(accept_rate = sum(status == "accept") / r)
+
+# Plot histogram of acceptance rates
+ggplot(accept_rates3, aes(x = accept_rate)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    bins = 30,
+    fill = "skyblue",
+    color = "black"
+  ) +
+  geom_vline(
+    xintercept = theoretical_prob,
+    color = "red",
+    linetype = "dashed",
+    linewidth = 1
+  ) +
+  labs(
+    title = "Acceptance Rate Distribution (1000 Simulations with 5000 draws)",
+    x = "Acceptance Rate",
+    y = "Density"
+  ) +
+  annotate(
+    "text",
+    x = theoretical_prob + 0.02,
+    y = 15,
+    label = paste0("Theoretical: ", round(theoretical_prob, 3)),
+    color = "red"
+  )
+```
+
+The simulations demonstrate that increasing the number of draws per trial (\(r\)) significantly reduces variability in acceptance rate estimates. For \(r = 100\), the histogram of acceptance rates across \(s = 1000\) trials shows wider dispersion around the theoretical value than the other two trials. With \(r = 1000\), the distribution narrows more, and for \(r = 5000\), the histogram becomes more like normal distribution, being symmetric on the both sides theretical value line. This illustrates the **Law of Large Numbers** theory, which means that larger \(r\) yields more precise approximations of the true probability.
+
+
+## 2. Re-estimate the multinomial probit model in this chapter, still with `r` = 50 but using a different random seed. Do this several times. The estimated values of the parameters will change, which is to be expected...but which ones change more? Why do you think this happens?
+
+```{r ch08-load-data, include=FALSE}
 data("Heating")
 ```
 
-```{r ch08-prepare-data}
+```{r ch08-prepare-data, include=FALSE}
 H <- mlogit.data(Heating, 
                  shape = "wide", 
                  choice = "depvar", 
                  varying = c(3:12))
 ```
-
-## 1. Repeat the illustrative accept-reject simulation multiple times (e.g., `s` = 1000) using `r` = 100 and summarize the results in the form of a histogram or frequency polygon.Next, do the same experiment butwith `r` = 1000 and `r` = 5000. Compare to the exact area and discuss your results. Hint: You can simultaneously draw `s` × `r` random numbers and then collect them in `s` groups (see package {dplyr} functions `group_by()` and `summarize()`).
-
-
-
-## 2. Re-estimate the multinomial probit model in this chapter, still with `r` = 50 but using a different random seed. Do this several times. The estimated values of the parameters will change, which is to be expected...but which ones change more? Why do you think this happens?
 
 
 
