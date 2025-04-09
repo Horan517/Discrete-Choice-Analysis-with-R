@@ -16,6 +16,11 @@ library(dplyr) # A Grammar of Data Manipulation
 library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
 library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax
 library(mlogit) # Multinomial Logit Models
+library(gmnl) # Multinomial Logit Models with Random Parameters
+library(gridExtra) # Miscellaneous Functions for "Grid" Graphics
+library(stargazer) # Well-Formatted Regression and Summary Statistics Tables
+library(tibble) # Simple Data Frames
+library(tidyr) # Tidy Messy Data
 ```
 
 ## 1. Repeat the illustrative accept-reject simulation multiple times (e.g., `s` = 1000) using `r` = 100 and summarize the results in the form of a histogram or frequency polygon. Next, do the same experiment butwith `r` = 1000 and `r` = 5000. Compare to the exact area and discuss your results. Hint: You can simultaneously draw `s` × `r` random numbers and then collect them in `s` groups (see package {dplyr} functions `group_by()` and `summarize()`).
@@ -220,16 +225,200 @@ H <- mlogit.data(Heating,
                  varying = c(3:12))
 ```
 
+```{r, results="asis", cache=TRUE}
+prob1 <- mlogit(depvar ~ ic + oc, 
+                H, 
+                reflevel = "gc", 
+                probit = TRUE, 
+                # can set the seed to control the random numbers (parameter1)
+                seed = 3333,
+                # number of draws (parameter2)
+                R = 50)
+
+prob2 <- mlogit(depvar ~ ic + oc, 
+                H, 
+                reflevel = "gc", 
+                probit = TRUE, 
+                # can set the seed to control the random numbers (parameter1)
+                seed = 1069,
+                # number of draws (parameter2)
+                R = 50)
+
+prob3 <- mlogit(depvar ~ ic + oc, 
+                H, 
+                reflevel = "gc", 
+                probit = TRUE, 
+                # can set the seed to control the random numbers (parameter1)
+                seed = 2024,
+                # number of draws (parameter2)
+                R = 50)
+```
+
+```{r, echo=FALSE}
+prob1.summary <- rownames_to_column(data.frame(summary(prob1)$CoefTable),
+                                     "Variable") %>%
+  transmute(Variable,
+            Estimate, 
+            pval = `Pr...z..`)
+
+prob2.summary <- rownames_to_column(data.frame(summary(prob2)$CoefTable), 
+                                     "Variable") %>%
+  transmute(Variable,
+            Estimate,
+            pval = `Pr...z..`)
+
+prob3.summary <- rownames_to_column(data.frame(summary(prob3)$CoefTable),
+                                   "Variable") %>% 
+  transmute(Variable, 
+            Estimate, 
+            pval = `Pr...z..`)
+
+prob_table_1 <- full_join(prob1.summary, 
+                          prob2.summary, 
+                          by = "Variable") %>% 
+  full_join(prob3.summary,
+            by = "Variable")
+
+kable(prob_table_1, 
+      "latex",
+      digits = 4,
+      col.names = c("Variable",
+                    "Estimate",
+                    "p-value",
+                    "Estimate",
+                    "p-value",
+                    "Estimate",
+                    "p-value"),
+      caption = "\\label{tab:table-mixed-probit-models}Multinomial Probit models with different seeds",
+      ) %>%
+  kable_styling() %>%
+  add_header_above(c(" " = 1, "Seed = 3333" = 2, "Seed = 1069" = 2, "Seed = 2024" = 2)) %>%
+  footnote(general = c(paste0("Log-Lik (seed=3333):",
+                              round(prob1$logLik, 
+                                    digits = 3),
+                            "; Log-Lik (seed=1069):", 
+                            round(prob2$logLik, 
+                                  digits = 3),
+                            "; Log-Lik (seed=2024):", 
+                            round(prob3$logLik, 
+                                  digits = 3))))
+```
+
+Re-estimating the multinomial probit model with different seeds (`seed = 3333`, `1069`, `2024`) and `R = 50` reveals different patterns in parameter stability. First, The main coefficients (i.e., `ic` and `oc`) remain remarkably consistent across different runs. In contrast, intercepts and covariance parameters exhibit significant variability. For example, the intercept of `(Intercept):gr` ranges from -48.69 to -21.51, with uniformly insignificant p-values < 0.68, indicating poor identification. Meanwhile, covariance terms like `ec.gr` (9.26 to 3.27) and `ec.er` (-0.01 to 0.07) vary widely, with p-values > 0.9.
+
+The reasons for can be concluded in several aspects: a) Limited draws. The Halton sequence approximation for the multivariate normal integrals becomes noisy with fewer draws, disproportionately affecting covariance terms and intercepts tied to latent utilities. b) Identification challenges. Covariance parameters and intercepts for rarely chosen alternatives (e.g., `gr`, `hp`) are poorly identified, amplifying sensitivity to simulation noise. One way to improve is to increase `R` for stable covariance estimation or simplify the model by restricting off-diagonal terms. This underscores the trade-off between computational cost and precision in multinomial probit models.
 
 
+## 3. Use the models you estimated in Question 2 and repeat the scenario where the installation cost of gas central systems increases by 15%. What can you say about the patterns of substitution when you calculate them with different models? What would you do to be more confident about the estimated patterns of substitution?
+
+```{r, results="asis", cache=TRUE, echo=FALSE}
+H_increase <- H
+H_increase[H_increase$alt == "gc", "ic"] <- 1.15 * H_increase[H_increase$alt == "gc", "ic"]
+
+scenario_prob1 = data.frame(Policy = c("Do nothing", "15% increase (seed = 3333)"),
+                         rbind(apply(predict(prob1, 
+                                             newdata = H), 
+                                     2, 
+                                     mean),
+                               apply(predict(prob1, 
+                                             newdata = H_increase),
+                                     2, 
+                                     mean)))
+
+# Render as LaTeX table with booktabs formatting
+knitr::kable(
+  scenario_prob1,
+  format = "latex",
+  caption = "Predicted Choice Probabilities Under Different Policies (seed = 3333)",
+  booktabs = TRUE,
+  align = c("l", "r", "r", "r", "r"), # Align columns (left for Policy, right for others)
+  digits = 3 # Round numeric columns to 3 decimal places
+) %>%
+  kableExtra::kable_styling(latex_options = "hold_position")
+
+scenario_prob2 = data.frame(Policy = c("Do nothing", "15% increase (seed = 1069)"),
+                         rbind(apply(predict(prob2, 
+                                             newdata = H), 
+                                     2, 
+                                     mean),
+                               apply(predict(prob2, 
+                                             newdata = H_increase),
+                                     2, 
+                                     mean)))
+
+# Render as LaTeX table with booktabs formatting
+knitr::kable(
+  scenario_prob2,
+  format = "latex",
+  caption = "Predicted Choice Probabilities Under Different Policies (seed = 1069)",
+  booktabs = TRUE,
+  align = c("l", "r", "r", "r", "r"), # Align columns (left for Policy, right for others)
+  digits = 3 # Round numeric columns to 3 decimal places
+) %>%
+  kableExtra::kable_styling(latex_options = "hold_position")
+
+scenario_prob3 = data.frame(Policy = c("Do nothing", "15% increase (seed = 2024)"),
+                         rbind(apply(predict(prob3, 
+                                             newdata = H), 
+                                     2, 
+                                     mean),
+                               apply(predict(prob3, 
+                                             newdata = H_increase),
+                                     2, 
+                                     mean)))
+
+# Render as LaTeX table with booktabs formatting
+knitr::kable(
+  scenario_prob3,
+  format = "latex",
+  caption = "Predicted Choice Probabilities Under Different Policies (seed = 2024)",
+  booktabs = TRUE,
+  align = c("l", "r", "r", "r", "r"), # Align columns (left for Policy, right for others)
+  digits = 3 # Round numeric columns to 3 decimal places
+) %>%
+  kableExtra::kable_styling(latex_options = "hold_position")
 
 
-## 3. Use the models you estimated in Question 2 and repeat the scenario where the installation cost of gas central systems increases by 15%.What can you say about the patterns of substitution when you calculate them with different models? What would you do to be more confident about the estimated patterns of substitution?
+Ratios_prob <- data.frame(rbind(
+  (scenario_prob1[2,2:6] - scenario_prob1[1,2:6]) / scenario_prob1[1,2:6] * 100,
+  (scenario_prob2[2,2:6] - scenario_prob2[1,2:6]) / scenario_prob1[1,2:6] * 100,
+  (scenario_prob3[2,2:6] - scenario_prob3[1,2:6]) / scenario_prob1[1,2:6] * 100
+))
 
+row.names(Ratios_prob) <- c("Ratio of probabilities (seed = 3333)",
+                            "Ratio of probabilities (seed = 1069)",
+                            "Ratio of probabilities (seed = 2024)") 
 
+# Render as LaTeX table with booktabs formatting
+knitr::kable(
+  Ratios_prob,
+  format = "latex",
+  caption = "Substitution Effects between different models with different seeds",
+  booktabs = TRUE,
+  align = c("l", "r", "r", "r", "r"), # Align columns (left for Policy, right for others)
+  digits = 3 # Round numeric columns to 3 decimal places
+) %>%
+  kableExtra::kable_styling(latex_options = "hold_position")
+```
 
+The substitution effects across models with different seeds (`3333`, `1069`, `2024`) reveal consistent trends but notable variability in magnitude. A 15% increase in gas central (`gc`) installation costs drives significant substitution toward electric central (`ec`) and electric room (`er`) systems, with their probability ratios increasing by ~30–33% and ~26–27%, respectively. However, substitutions to gas room (`gr`) and heat pump (`hp`) systems are smaller and more erratic, with `gr` fluctuating between 0.2–0.85%, and `hp` varying between 23–26%.
+
+To improcec onfidence in the estimates, two ways could be implemented: a) Increase simulation draws. Raising `R` from 50 to more than 1,000 would reduce noise in the Halton sequence approximation, stabilizing covariance estimates and substitution patterns, though this would come with bigger computational costs. b) Robustness checks. Replicate the analysis across more seeds and models to distinguish true substitution trends from simulation artifacts. 
 
 ## 4. Re-estimate the multinomial probit model in this chapter with `r` = 50 and the seed set to 3245, but change the reference level to “ec”. What happens? What do you think are the implications for experimenting with multinomial probit model specifications?
 
+```{r, results="asis", cache=TRUE, eval=FALSE}
+prob4 <- mlogit(depvar ~ ic + oc, 
+                H,
+                reflevel = "ec", 
+                probit = TRUE, 
+                # can set the seed to control the random numbers (parameter1)
+                seed = 3245,
+                # number of draws (parameter2)
+                R = 50)
+```
 
+Changing the reference level to “ec” (electric central) triggers a computational error regarding the "Cholesky decomposition of the covariance matrix". The error `the leading minor of order 1 is not positive` indicates that the covariance matrix of the latent utilities is not positive definite when “ec” is the base category. This likely arises because the model’s covariance structure becomes near-singular due to collinearity between alternatives.
+
+The implications are that when working with multinomial probit models, the choice of reference level can directly affect model results. Certain reference categories may introduce structural dependencies in the error covariance matrix, leading to estimation failures, therefore, experimentation with differnt reference levels is encouraged.
 

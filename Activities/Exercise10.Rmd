@@ -10,7 +10,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r ch10-load-packages, message=FALSE, cache=FALSE}
+```{r ch10-load-packages, message=FALSE, cache=FALSE, include=FALSE}
 library(AER) # Applied Econometrics with R 
 library(dplyr) # A Grammar of Data Manipulation
 library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
@@ -23,19 +23,20 @@ library(tibble) # Simple Data Frames
 library(tidyr) # Tidy Messy Data
 ```
 
-```{r ch10-load-data} 
-data("TravelMode", 
-     package = "AER")
-```
-
-
 ## 1. What is the difference between an error component and a random coefficient in
 a mixed logit model?
 
+parameters specification is different.
+refer to the pages from 258-259.
+also refer to DS
 
 
 ## 2. In your own words, explain the IIA property as it pertains to the mixed logit
 model.
+
+"Just as was the case with the latent class logit model, a consequence of mixing
+distributions is that the mixed logit, despite having a logit probability as a kernel,
+does not display proportional substitution." page 260
 
 
 
@@ -58,9 +59,11 @@ MC <- mlogit.data(ModeCanada %>%
 ```
 
 
+immitate the lecture slide 
+
 ## 4. Graphically show the random coefficient(s) of your model, both the unconditional and conditional distributions. Discuss the results.
 
 
-
+immitate the lecture slide 
 
 

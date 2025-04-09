@@ -283,7 +283,7 @@ ggplot() +
             fill = "orange", 
             alpha = 0.5) +
   # Plot the distribution for positive values of x only
-  geom_area(data = df_p, 
+  geom_area(data = df_p, d
             aes(x = x,
                 y = normal), 
             fill = "orange", 
