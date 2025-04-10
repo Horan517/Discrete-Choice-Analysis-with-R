@@ -149,6 +149,10 @@ kable(df_logit,
 
 ```{r ch10-inclusive-parameter-base-nested-logit-model}
 (nl$coefficients["iv"] - 1) / sqrt(vcov(nl)["iv","iv"])
+
+# willingness to pay
+-0.0037/-0.0106
+-0.0557/-0.0106
 ```
 
 ```{r ch10-hello-world}
@@ -160,7 +164,7 @@ print("A piece of advice: never punch a shark in the mouth")
 mixl_t <- gmnl(choice ~ vcost + travel + wait | 1,
              data = TM,
              model = "mixl", 
-             ranp = c(travel = "n"),
+             ranp = c(travel = "n"), # "n" means normal distribution
              R = 50)
 mixl_t$logLik$message
 
@@ -277,13 +281,13 @@ df_p <- data.frame(x = seq(from = 0,
 # Plot
 ggplot() +
   # Plot the distribution
-  geom_area(data = df, 
+  geom_area(data = df,
             aes(x = x, 
                 y = normal), 
             fill = "orange", 
             alpha = 0.5) +
   # Plot the distribution for positive values of x only
-  geom_area(data = df_p, d
+  geom_area(data = df_p,
             aes(x = x,
                 y = normal), 
             fill = "orange", 
@@ -499,7 +503,7 @@ mixl_table_2 <- mixl_w1.summary %>%
             by = "Variable")
 
 kable(mixl_table_2, 
-      "latex",
+      "html",
       digits = 4,
       col.names = c("Variable",
                     "Estimate",
@@ -534,13 +538,26 @@ q <- quantile(TM$income, c(0, 0.25, 0.5, 0.75, 1))
 mu_w <- coef(mixl_w)['wait']
 sigma_w <- coef(mixl_w)['sd.wait']
 
+# 0th quartile
+mu_w2.0 <- coef(mixl_w2)['wait'] + coef(mixl_w2)["wait:income"] * q[1]
+sigma_w2.1 <- coef(mixl_w2)['sd.wait']
+
 # First quartile
 mu_w2.1 <- coef(mixl_w2)['wait'] + coef(mixl_w2)["wait:income"] * q[2]
 sigma_w2.1 <- coef(mixl_w2)['sd.wait']
 
+# second quartile
+mu_w2.2 <- coef(mixl_w2)['wait'] + coef(mixl_w2)["wait:income"] * q[3]
+sigma_w2.3 <- coef(mixl_w2)['sd.wait']
+
 # Third quartile
 mu_w2.3 <- coef(mixl_w2)['wait'] + coef(mixl_w2)["wait:income"] * q[4]
 sigma_w2.3 <- coef(mixl_w2)['sd.wait']
+
+# last quartile
+mu_w2.4 <- coef(mixl_w2)['wait'] + coef(mixl_w2)["wait:income"] * q[5]
+sigma_w2.1 <- coef(mixl_w2)['sd.wait']
+
 
 # Create a data frame for plotting
 df_w <- data.frame(x =seq(from = -0.6,
@@ -550,18 +567,34 @@ df_w <- data.frame(x =seq(from = -0.6,
                         mean = mu_w, 
                         sd = sigma_w))
 
+df_w2.0 <- data.frame(x =seq(from = -0.6, 
+                             to = 0.2, 
+                             by = 0.005)) %>% 
+  mutate(normal = dnorm(x, 
+                        mean = mu_w2.0, 
+                        sd = sigma_w2.0))
+  
 df_w2.1 <- data.frame(x =seq(from = -0.6, 
                              to = 0.2, 
                              by = 0.005)) %>% 
   mutate(normal = dnorm(x, 
                         mean = mu_w2.1, 
                         sd = sigma_w2.1))
+
+df_w2.2 <- data.frame(x =seq(from = -0.6, 
+                             to = 0.2, 
+                             by = 0.005)) %>% 
+
 df_w2.3 <- data.frame(x =seq(from = -0.6, 
                              to = 0.2, 
                              by = 0.005)) %>% 
   mutate(normal = dnorm(x, 
                         mean = mu_w2.3, 
                         sd = sigma_w2.3))
+
+df_w2.4 <- data.frame(x =seq(from = -0.6, 
+                             to = 0.2, 
+                             by = 0.005)) %>% 
 
 # Plot
 ggplot() +
