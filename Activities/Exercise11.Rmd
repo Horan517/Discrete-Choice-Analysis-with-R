@@ -1,0 +1,116 @@
+---
+title: "Exercise 11"
+author: "Haoran Xu"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r ch11-load-packages, message=FALSE, include=FALSE}
+library(discrtr) # A companion package for the book Introduction to Discrete Choice Analysis with `R` 
+library(dplyr) # A Grammar of Data Manipulation
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
+library(ggridges) # Ridgeline Plots in 'ggplot2'
+library(gridExtra) # Miscellaneous Functions for "Grid" Graphics
+library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax
+library(mvord) # Multivariate Ordinal Regression Models
+library(ordinal) # Regression Models for Ordinal Data
+library(stargazer) # Well-Formatted Regression and Summary Statistics Tables
+library(plyr) # Tools for Splitting, Applying and Combining Data
+library(tibble) # Simple Data Frames
+library(tidyr) # Tidy Messy Data
+```
+
+## 1. Why is it important to distinguish between non-ordinal and ordinal categorical variables in the analysis of discrete choices?
+
+Non-ordinal categorical variables (or Nomial variables), for example, the choice of transport mode of car, train, and bus have no inherent order. That is, the categories are simply different and unordered. In such case, models like Multinomial Logit (MNL) would treat each category as distinct and unrelated in position or ranking.
+
+In contrast, ordinal categorical variables have an intrinsic ranking among categories, for exampe, the underlying correlation and ascending order of people's satisfaction level from low to high. Ignoring this structure and treating ordinal outcomes as nominal would lose efficiency and interpretability. This is why specialized models as the ordered logit or ordered probit models.
+
+
+## 2. When parameterizing the thresholds \(λ_i\), is it possible to use variables that are part of the systematic utility \(V_n\)? Explain.
+
+No. If the same variable appears in both the utility function and the threshold function, the model becomes "unidentified", meaning that it became impossible to distinguish whether a covariate is influencing the individual’s utility level directly, or shifting the threshold boundaries that determine the observed outcome.
+
+
+## 3.	When parameterizing the scale \(σ\), is it possible to use variables that are part of the systematic utility \(V_n\)? Explain.
+
+No. Similar to parameterizing the thresholds, using variables that are part of the systematic utility to parameterize the scale would create identification problems. Because the model would not be able to distinguish whether the variable is influencing the level of utility or the variability of the decision. To keep the model properly identified and interpretable, the variables that enter the scale function must be different from those in the utility function.
+
+
+## 4.	Show the relationships of the model with parameterized scale to the proportional odds property.
+
+Allowing the scale \(σ\) to vary across individuals would cause the model to lose the proportional odds property. When parameterizing the scale, the model allowed the amount of random variation in people's decisions to depend on individual characteristics. The influence of the explanatory variables now depends on how much variability each person has in their decision-making. As a result, the effects of variables are no longer consistent across the outcome categories. This means the proportional odds property no longer holds.
+
+
+## 5. Load the following data set from the `discrtr` package. 
+
+### This data set was used by Lavery et al. (2013) to investigate the *modality* of students, staff, and faculty traveling to McMaster University. The modality is the number of modes of transportation that respondents recognize as feasible alternatives for travel to school (this variable is `modality` in the table). Model the modality using an ordinal logistic model. Justify your modeling decisions.
+
+```{r, echo=FALSE}
+data("mc_modality",
+      package = "discrtr")
+```
+
+Here is the model specification.
+
+```{r}
+modality_clm <- clm(modality ~ gender + age + status + care_giver 
+                    + Median_HH_Income + LITA + LUM + MAC_DISTANCE + POPULATION_DENSITY + 
+                      SF_P_RATIO,
+                    data = mc_modality)
+```
+
+The explanatory variables I chose can be categorized into three aspects:
+
+- Individual Demographics
+  - `gender`: Gender differences influence travel perceptions, preferences, and constraints (e.g., safety concerns, mode preferences), making this a relevant covariate.
+  - `age`: Age affects mobility options (e.g., access to biking, comfort with transit). Younger individuals may have more flexible mode choices or lower car access.
+  - `status`: Institutional roles (Staff or Faculty/Student) affects daily routines, time constraints, and access to institutional resources.
+  - `care_giver`: Being a primary caregiver may restrict feasible options due to tight scheduling or the need for trip chaining.
+
+- Socioeconomic Environment
+  - `Median_HH_Income`: Higher-income neighborhoods may have greater car ownership, different land use patterns, and differing access to transit infrastructure.
+  
+- Built Environment and Accessibility
+  - `LITA` (Transit Access Index): A direct measure of how accessible transit is — higher LITA should correlate with more perceived alternatives.
+  - `LUM` (Land Use Mix): Greater land use mixed levels can encourage multiple mode options by reducing trip distances.
+  - `MAC_DISTANCE`: Physical distance to campus affects feasibility of active modes and influences perceived access to transit.
+  - `POPULATION_DENSITY`: Denser areas typically support more transit routes and walkable environments, making multiple modes more feasible.
+  - `SF_P_RATIO` (building footprint to parcel area): A proxy for urban form—higher values suggest denser, possibly more transit-friendly environments.
+
+```{r, echo=FALSE}
+clm.summary <- rownames_to_column(data.frame(summary(modality_clm)$coefficients),
+                                     "Variable") %>%
+  transmute(Variable,
+            Estimate, 
+            pval = `Pr...z..`)
+
+kable(clm.summary, 
+      "latex",
+      digits = 4,
+      col.names = c("Variable",
+                    "Estimate",
+                    "p-value"),
+      caption = "\\label{tab:table-ordered-logit-models}Ordinal Logit Model",
+      ) %>%
+  kable_styling()
+```
+
+According to the model results, several built environment variables significantly influence the number of feasible transportation modes available to individuals traveling to McMaster University. Most notably, distance to campus has a strong negative effect (\(–0.0415, p < 0.001\)), indicating that each additional kilometer in distance from McMaster is associated with a reduction in the odds of reporting a higher modality categor. Similarly, population density also shows a significant negative association (\(–0.00227, p < 0.001\)), meaning that individuals in denser areas perceive fewer viable travel options. In contrast, the building footprint-to-parcel ratio has a large positive effect (\(1.02, p < 0.001\)), suggesting that individuals living in areas with denser built form are substantially more likely to report having access to multiple travel modes. While transit access has a positive coefficient (\(0.047\)), it is not significant at the 0.05 level, though it may still be practically relevant. On the other hand, individual-level variables such as gender, age, student status, caregiver role, and median household income all do not show statistically significant effects. Overall, the results indicate that built environment characteristics, especially proximity to campus and urban form, are stronger predictors of multimodal accessibility than individual demographics, in the context of the people living around McMaster University.
+
+### Is a model with parameterized thresholds and/or scale justiﬁed? Discuss.
+
+Currently, there is no strong justification for extending the ordinal logistic model to include parameterized thresholds or scale. Because as the current model assumes "proportional odds property", the effect of each covariate is consistent across all levels of the outcome variable (`modality`). There is no evidence that suggests the relationship between predictors (e.g., `MAC_DISTANCE`, `POPULATION_DENSITY`, `SF_P_RATIO`) and different modality categories changes substantially. 
+
+Similarly, parameterizing scale, also lacks clear justification. Scale heterogeneity is typically introduced when some subgroups are more consistent or more uncertain in their choices. But the current model results shows that no strong evidence that individual-level characteristics (such as `gender`, `age`, `income`, `caregiver`, or `status`) are significant predictors. 
+
+Therefore, at this stage, the standard ordinal logistic model with fixed thresholds and scale remains an appropriate and parsimonious choice.
+
+
+

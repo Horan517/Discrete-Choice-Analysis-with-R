@@ -1,9 +1,11 @@
 ---
-title: "Exercise10"
+title: "Exercise 10"
 author: "Haoran Xu"
 output:
+  pdf_document: default
   rmdformats::robobook:
     highlight: kate
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -23,31 +25,25 @@ library(tibble) # Simple Data Frames
 library(tidyr) # Tidy Messy Data
 ```
 
-## 1. What is the difference between an error component and a random coefficient in
-a mixed logit model?
+## 1. What is the difference between an error component and a random coefficient in a mixed logit model?
 
-parameters specification is different.
-refer to the pages from 258-259.
-also refer to DS
+An error component captures correlation across alternatives or over time in unobserved utility components. In contrast, random coefficients are coefficients of explanatory variables that are set for modeling taste variation across individuals.
 
 
-## 2. In your own words, explain the IIA property as it pertains to the mixed logit
-model.
+## 2. In your own words, explain the IIA property as it pertains to the mixed logit model.
 
-"Just as was the case with the latent class logit model, a consequence of mixing
-distributions is that the mixed logit, despite having a logit probability as a kernel,
-does not display proportional substitution." page 260
-
+The Independence of Irrelevant Alternatives (IIA) property states that the relative odds of choosing between any alternatives are independent of one another. Mixed logit model does not display proportional substitution as its flexible structure of incorporating taste variation.
+Specifically, the ratio of choice probabilities for two alternatives in a mixed logit model depends on all alternatives’ attributes through the integral, so denominators don’t cancel out as normally in Multinomial Logit Models (MNL). 
 
 
 ## 3. Load the following data set from the `mlogit` package. This data set includes information about travel by mode in the Montreal–Toronto corridor. Variable `noalt` is the number of alternatives available to each respondent. Filter all respondents with four alternatives and process the data for use in `gmnl`. Estimate a mixed logit model using this data set. Justify your choice of variables. Which variables do you choose to have random coefficients and why?
 
-```{r}
+```{r, echo=FALSE}
 data("ModeCanada",
      package = "mlogit")
 ```
 
-```{r}
+```{r, echo=FALSE}
 MC <- mlogit.data(ModeCanada %>% 
                     filter(noalt == 4), 
                   choice = "choice", 
@@ -58,12 +54,154 @@ MC <- mlogit.data(ModeCanada %>%
                                  "car"))
 ```
 
+Here is my model specification.
 
-immitate the lecture slide 
+```{r}
+mixl <- gmnl(choice ~ cost + cost:income + cost:urban + ivt + ivt:income + ivt:urban + ovt +
+               ovt:income + ovt:urban | 1,
+             data = MC,
+             model = "mixl", 
+             ranp = c(ivt = "n", ovt = "n"), # "n" means normal distribution
+             R = 50)
+mixl$logLik$message
+```
+
+```{r, echo=FALSE}
+# Estimate a constants only model to calculate McFadden's _adjusted_ rho2
+mixl_0 <- gmnl(choice ~ 1,
+             data = MC, 
+             model = "mnl")
+
+mixl.summary <- rownames_to_column(data.frame(summary(mixl)$CoefTable),
+                                     "Variable") %>%
+  transmute(Variable,
+            Estimate, 
+            pval = `Pr...z..`)
+
+kable(mixl.summary, 
+      "latex",
+      digits = 4,
+      col.names = c("Variable",
+                    "Estimate",
+                    "p-value"),
+      caption = "\\label{tab:table-mixed-logit-models}Mixed logit models",
+      ) %>%
+  kable_styling() %>%
+  footnote(general = c(paste0("Log-Likelihood: MIXL = ",
+                              round(mixl$logLik$maximum, 
+                                    digits = 3)),
+                       # Calculate McFadden's  rho-2
+                       paste0("McFadden Adjusted R^2: MIXL = ",
+                              round(1 - (mixl$logLik$maximum - nrow(mixl.summary)) / 
+                                      mixl_0$logLik$maximum, 
+                                    digits = 3))))
+
+```
+
+In the mixed logit model, I included `cost`, `ivt` (in-vehicle time), `ovt` (out-vehicle time) as explanatory variables, and `income` and `urban` as expanded items carrying differentiated correlations with the previous explanatory variables. Here are the breakdowns of the variables:
+
+- Monetary cost (`cost`): Included because it directly impacts the utility of alternatives. Also this variable interacted with `income` to test if people of different levels of income perceive monetary cost differently, and `urban` to test whether urban dwellers perceive cost differently (e.g., may have more access to public transit discounts or alternative pricing structures).
+
+- In-vehicle time (`ivt`): It captures the burden of time spent traveling in the vehicle, exerting a direct impact on utility of alternatives. While it also interacted with `income` and `urban` to reflect that time valuation likely differs by income level and living area (urban users may value shorter trips more).
+
+- Out-vehicle time (`ovt`): Similar to in-vehicle time, this variable time spent waiting the services. It also interacted with income and urban to capture context-dependent time sensitivity.
+
+- Frequency (`frequency`): This variable is not included because presumably higher frequency would lead to higher utility, while the frequency of car is coded as 0, which does not precisely reflect the utmost flexibility of using cars compared to other modes, therefore it was not considered in the model.
+
+Ford random coefficients selection, I chose `ivt` (in-vehicle time) and `ovt` (out-vehicle time) to have random coefficients, assuming them to follow a normal distribution across individuals. The reason is that I assume in-vehicle time and out-vehicle time would vary widely in people as different people may have different travel purposes, time sensitivity levels and general life satisfaction.
+
 
 ## 4. Graphically show the random coefficient(s) of your model, both the unconditional and conditional distributions. Discuss the results.
 
+Analyzing the model results from last task.
 
-immitate the lecture slide 
+The results show that, as expected, cost negatively influences utility (\( -0.0311, p < 0.001 \)), and this effect is even stronger for individuals living in urban areas. While the interaction between cost and income is not statistically significant, its positive sign suggests that higher-income individuals may be slightly less sensitive to cost increases.
 
+In terms of travel time, only out-vehicle time is strongly disfavored, especially by higher-income travelers. Urban dwellers are more sensitive to in-vehicle time, possibly due to longer or more congested commutes, while these people are more tolerant of out-vehicle time, perhaps due to greater familiarity with transfers and walking segments in multimodal transit. For the random coefficients across individuals, only in-vehicle time exhibits significant heterogeneity, which may also account for its not significant mean value of coeffient as to utilities. This confirms that preferences for in-vehicle time vary meaningfully across the population, while out-vehicle time does not exhibit such heterogeneity.
 
+Here I plot the unconditional distribution of the random coefficients. 
+
+```{r ch10-mixed-logit-models-no-decision-maker-attributes-distributions, echo=FALSE}
+# Retrieve the estimated parameters
+mu1 <- coef(mixl)['ivt']
+sigma1 <- coef(mixl)['sd.ivt']
+
+mu2 <- coef(mixl)['ovt']
+sigma2 <- coef(mixl)['sd.ovt']
+
+# Create a data frame for plotting
+df <- data.frame(x =seq(from = -0.05, 
+                        to = 0.05, 
+                        by = 0.0001)) %>%
+  # Draw from the normal distribution for x given the mean and sd
+  mutate(normal1 = dnorm(x,
+                        mean = mu1, 
+                        sd = sigma1),
+         normal2 = dnorm(x,
+                         mean = mu2,
+                         sd = sigma2))
+```
+
+```{r ch10-mixed-logit-models-no-decision-maker-attributes-distributions-plot, echo=FALSE}
+# Plot
+ggplot() +
+  # Plot the distribution
+  geom_area(data = df,
+            aes(x = x, 
+                y = normal1), 
+            fill = "orange", 
+            alpha = 0.5) +
+  # Plot the distribution for positive values of x only
+  geom_area(data = df,
+            aes(x = x,
+                y = normal2), 
+            fill = "pink", 
+            alpha = 0.5) +
+  geom_hline(yintercept = 0) + # Add y axis
+  geom_vline(xintercept = 0) + # Add x axis
+  ylab("f(x)") + # Label the y axis
+  xlab(expression(beta[n][t])) + # Label the x axis
+  ggtitle("Unconditional distribution for ivt (orange) and ovt (pink) parameter")
+```
+
+Here's the conditional distribution of the random coefficients.
+
+```{r ch10-mixed-logit-models-no-decision-maker-attributes-conditional-distributions, echo=FALSE}
+# Define parameters for the distribution
+bn_ivt <- effect.gmnl(mixl, 
+                       par = "ivt", 
+                       # Choose conditional effect
+                       effect = "ce")
+
+bn_ovt <- effect.gmnl(mixl, 
+                       par = "ovt", 
+                       # Choose conditional effect
+                       effect = "ce")
+
+# Create a data frame for plotting
+df2 <- data.frame(bn_ivt = bn_ivt$mean, bn_ovt = bn_ovt$mean)
+df_long <- df2 %>%
+  pivot_longer(cols = c(bn_ivt, bn_ovt),
+               names_to = "variable",
+               values_to = "value")
+
+# plot
+ggplot(df_long, aes(x = value, fill = variable)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~variable, scales = "free") +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = -0.04) +
+  ylab("f(x)") +
+  xlab(expression(beta[n])) +
+  ggtitle("Conditional distributions for ivt and ovt parameters") +
+  scale_fill_manual(values = c("bn_ivt" = "orange", "bn_ovt" = "pink"),
+                    labels = c("bn_ivt" = "In-vehicle time (ivt)", 
+                               "bn_ovt" = "Out-of-vehicle time (ovt)")) +
+  theme(legend.position = "none")
+```
+
+The two density plots illustrate the unconditional and conditional distributions of the random coefficients for in-vehicle time (`ivt`) and out-of-vehicle time (`ovt`) in the mixed logit model.
+
+The unconditional distributions represent the assumed population-level variability in preferences. The in-vehicle time coefficient has a mean of \( 0.0016 \), slightly above zero and relatively wide spread, suggesting significant heterogeneity across individuals depending on personal preferences or travel contexts. In contrast, the out-vehicle time coefficient centered at \( -0.041 \) with a narrow distribution, indicating that out-vehicle time (e.g., waiting for public transit or walking to bus stops) is consistently perceived negatively by most individuals with minimal variation.
+
+Regarding conditional distributions, derived from individual-specific travel modes, provide more granular insights into preference heterogeneity. The distribution of the conditional in-vehicle time coefficients is wider and exhibits multimodality pattern, also reinforcing the interpretation that sensitivity to in-vehicle time varies meaningfully across individuals. On the other hand, the conditional out-vehicle time distribution is sharply peaked and narrowly concentrated, reflecting uniform aversion to out-vehicle time across decision-makers. This aligns with the earlier finding that the standard deviation of ovt’s random effect was statistically insignificant.
